@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { LoginPage } from '@/pages/LoginPage'
-import { DashboardPage } from '@/pages/DashboardPage'
 import { PropertyListPage } from '@/pages/properties/PropertyListPage'
 import { PropertyFormPage } from '@/pages/properties/PropertyFormPage'
 import { RoomListPage } from '@/pages/rooms/RoomListPage'

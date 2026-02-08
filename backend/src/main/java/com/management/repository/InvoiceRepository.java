@@ -7,12 +7,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     Optional<Invoice> findByRoomIdAndMonthAndYear(Long roomId, int month, int year);
+
+    @Query("SELECT i.roomId FROM Invoice i WHERE i.roomId IN :roomIds AND i.month = :month AND i.year = :year")
+    List<Long> findRoomIdsWithInvoice(@Param("roomIds") Collection<Long> roomIds, @Param("month") int month, @Param("year") int year);
 
     @Query("SELECT i FROM Invoice i JOIN Room r ON r.id = i.roomId JOIN Property p ON p.id = r.propertyId WHERE i.id = :id AND p.ownerUserId = :ownerUserId")
     Optional<Invoice> findByIdAndOwnerUserId(@Param("id") Long id, @Param("ownerUserId") Long ownerUserId);

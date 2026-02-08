@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useProperty } from '@/hooks/useProperties'
-import { useRooms } from '@/hooks/useRooms'
+import { useRoom } from '@/hooks/useRooms'
 import { useInvoices, useGenerateInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
 import { createMeterReading, getMeterReading } from '@/api/meterReadings'
 import { formatAmount, formatDate, isDueDateReached } from '@/utils'
@@ -32,8 +32,7 @@ export function RoomInvoicePage() {
   const [waterReading, setWaterReading] = useState('')
 
   const { data: property } = useProperty(propId)
-  const { data: rooms } = useRooms(propId ?? 0)
-  const room = rooms?.find((r) => r.id === rId)
+  const { data: room } = useRoom(propId, rId)
   const { data: invoicesForMonth } = useInvoices({
     month: meterMonth,
     year: meterYear,
@@ -80,8 +79,8 @@ export function RoomInvoicePage() {
   const initialWater = room?.initialWaterReading != null ? Number(room.initialWaterReading) : 0
   const prevElecVal = prevReading?.elecReading
   const prevWaterVal = prevReading?.waterReading
-  const prevElec = (prevElecVal != null && prevElecVal !== '') ? Number(prevElecVal) : initialElec
-  const prevWater = (prevWaterVal != null && prevWaterVal !== '') ? Number(prevWaterVal) : initialWater
+  const prevElec = prevElecVal != null && String(prevElecVal).trim() !== '' ? Number(prevElecVal) : initialElec
+  const prevWater = prevWaterVal != null && String(prevWaterVal).trim() !== '' ? Number(prevWaterVal) : initialWater
   const minElec = Math.max(prevElec, initialElec)
   const minWater = Math.max(prevWater, initialWater)
   const currElec = parseFloat(elecReading) || 0

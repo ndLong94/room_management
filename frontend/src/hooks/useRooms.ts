@@ -16,6 +16,7 @@ export function useRooms(propertyId: number | null) {
     queryKey: roomsKey(propertyId!),
     queryFn: () => fetchRooms(propertyId!),
     enabled: propertyId != null,
+    staleTime: 60 * 1000,
   })
 }
 
@@ -24,6 +25,7 @@ export function useRoom(propertyId: number | null, roomId: number | null) {
     queryKey: [...roomsKey(propertyId!), roomId],
     queryFn: () => fetchRoom(propertyId!, roomId!),
     enabled: propertyId != null && roomId != null,
+    staleTime: 60 * 1000,
   })
 }
 

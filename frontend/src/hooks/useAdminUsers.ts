@@ -10,7 +10,6 @@ import {
   recordPlatformPayment as recordPlatformPaymentApi,
 } from '@/api/admin'
 import type { AdminUsersParams } from '@/api/admin'
-import type { AdminUserDetail } from '@/types/user'
 
 export function useAdminUsers(params?: AdminUsersParams) {
   return useQuery({

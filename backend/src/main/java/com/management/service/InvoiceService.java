@@ -27,6 +27,8 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,11 +78,10 @@ public class InvoiceService {
             }
             int prevMonth = month == 1 ? 12 : month - 1;
             int prevYear = month == 1 ? year - 1 : year;
-            BigDecimal elecOld = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
-                    .map(MeterReading::getElecReading)
+            var prevReading = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear);
+            BigDecimal elecOld = prevReading.map(MeterReading::getElecReading)
                     .orElse(room.getInitialElecReading() != null ? room.getInitialElecReading() : BigDecimal.ZERO);
-            BigDecimal waterOld = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
-                    .map(MeterReading::getWaterReading)
+            BigDecimal waterOld = prevReading.map(MeterReading::getWaterReading)
                     .orElse(room.getInitialWaterReading() != null ? room.getInitialWaterReading() : BigDecimal.ZERO);
             BigDecimal elecPrice = property.getElecPrice() != null ? property.getElecPrice() : BigDecimal.ZERO;
             BigDecimal waterPrice = property.getWaterPrice() != null ? property.getWaterPrice() : BigDecimal.ZERO;
@@ -121,7 +122,14 @@ public class InvoiceService {
     public List<InvoiceResponse> list(Integer month, Integer year, Long propertyId, InvoiceStatus status) {
         long userId = currentUserId();
         List<Invoice> list = invoiceRepository.findForOwner(userId, year, month, propertyId, status);
-        return list.stream().map(this::toResponse).collect(Collectors.toList());
+        if (list.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> roomIds = list.stream().map(Invoice::getRoomId).collect(Collectors.toSet());
+        Map<Long, Room> roomMap = roomRepository.findAllById(roomIds).stream().collect(Collectors.toMap(Room::getId, r -> r));
+        Set<Long> propIds = roomMap.values().stream().map(Room::getPropertyId).filter(id -> id != null).collect(Collectors.toSet());
+        Map<Long, Property> propMap = propIds.isEmpty() ? Map.of() : propertyRepository.findAllById(propIds).stream().collect(Collectors.toMap(Property::getId, p -> p));
+        return list.stream().map(i -> toResponse(i, roomMap, propMap)).collect(Collectors.toList());
     }
 
     public InvoiceResponse getById(Long id) {
@@ -192,6 +200,19 @@ public class InvoiceService {
         String propertyName = propId != null
                 ? propertyRepository.findById(propId).map(Property::getName).orElse("—")
                 : "—";
+        return buildResponse(i, roomName, propId, propertyName);
+    }
+
+    private InvoiceResponse toResponse(Invoice i, Map<Long, Room> roomMap, Map<Long, Property> propMap) {
+        Room room = roomMap.get(i.getRoomId());
+        String roomName = room != null ? room.getName() : "—";
+        Long propId = room != null ? room.getPropertyId() : null;
+        Property property = propId != null ? propMap.get(propId) : null;
+        String propertyName = property != null ? property.getName() : "—";
+        return buildResponse(i, roomName, propId, propertyName);
+    }
+
+    private static InvoiceResponse buildResponse(Invoice i, String roomName, Long propId, String propertyName) {
         return InvoiceResponse.builder()
                 .id(i.getId())
                 .propertyId(propId)

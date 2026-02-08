@@ -1,5 +1,6 @@
 package com.management.batch;
 
+import com.management.domain.entity.MeterReading;
 import com.management.domain.entity.Property;
 import com.management.domain.entity.Room;
 import com.management.domain.enums.RoomStatus;
@@ -9,15 +10,15 @@ import com.management.repository.PropertyRepository;
 import com.management.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.item.ExecutionContext;
-import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemStream;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Reads rooms that need an invoice generated today (payment day, OCCUPIED, have meter reading, no invoice yet).
@@ -66,27 +67,34 @@ public class InvoiceJobItemReader implements ItemStreamReader<InvoiceJobItem> {
         int year = LocalDate.now().getYear();
 
         List<Room> rooms = roomRepository.findByPaymentDay(day);
+        List<Room> occupied = rooms.stream().filter(r -> r.getStatus() == RoomStatus.OCCUPIED).toList();
+        if (occupied.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> roomIds = occupied.stream().map(Room::getId).collect(Collectors.toSet());
+        Set<Long> roomIdsWithInvoice = new HashSet<>(invoiceRepository.findRoomIdsWithInvoice(roomIds, month, year));
+        Set<Long> roomIdsWithReading = meterReadingRepository.findByRoomIdInAndMonthAndYear(roomIds, month, year)
+                .stream().map(MeterReading::getRoomId).collect(Collectors.toSet());
+        Set<Long> propertyIds = occupied.stream().map(Room::getPropertyId).collect(Collectors.toSet());
+        var propertyMap = propertyRepository.findAllById(propertyIds).stream().collect(Collectors.toMap(Property::getId, p -> p));
+
         List<InvoiceJobItem> result = new ArrayList<>();
-        for (Room room : rooms) {
-            if (room.getStatus() != RoomStatus.OCCUPIED) {
+        for (Room room : occupied) {
+            if (roomIdsWithInvoice.contains(room.getId())) {
                 continue;
             }
-            if (invoiceRepository.findByRoomIdAndMonthAndYear(room.getId(), month, year).isPresent()) {
+            if (!roomIdsWithReading.contains(room.getId())) {
                 continue;
             }
-            if (meterReadingRepository.findByRoomIdAndMonthAndYear(room.getId(), month, year).isEmpty()) {
+            Property property = propertyMap.get(room.getPropertyId());
+            if (property == null) {
                 continue;
             }
-            Optional<Property> propertyOpt = propertyRepository.findById(room.getPropertyId());
-            if (propertyOpt.isEmpty()) {
-                continue;
-            }
-            Long ownerUserId = propertyOpt.get().getOwnerUserId();
             result.add(InvoiceJobItem.builder()
                     .roomId(room.getId())
                     .month(month)
                     .year(year)
-                    .ownerUserId(ownerUserId)
+                    .ownerUserId(property.getOwnerUserId())
                     .build());
         }
         return result;

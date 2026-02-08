@@ -35,7 +35,7 @@ export function OccupantsPage() {
     if (window.confirm(`Xóa người ở "${name}"?`)) deleteOccupant.mutate(id)
   }
 
-  const handleEdit = (o: (typeof occupants)[0]) => {
+  const handleEdit = (o: Occupant) => {
     setEditingId(o.id)
     setFormName(o.fullName)
     setFormPhone(o.phone ?? '')

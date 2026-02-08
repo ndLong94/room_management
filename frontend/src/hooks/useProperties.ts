@@ -15,6 +15,7 @@ export function useProperties() {
   return useQuery({
     queryKey: QUERY_KEY,
     queryFn: fetchProperties,
+    staleTime: 2 * 60 * 1000,
   })
 }
 
@@ -23,6 +24,7 @@ export function useProperty(id: number | null) {
     queryKey: [...QUERY_KEY, id],
     queryFn: () => fetchProperty(id!),
     enabled: id != null,
+    staleTime: 2 * 60 * 1000,
   })
 }
 

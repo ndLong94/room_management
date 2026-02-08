@@ -26,6 +26,7 @@ export function useInvoices(params: {
   return useQuery({
     queryKey: invoicesKey(params),
     queryFn: () => fetchInvoices(params),
+    staleTime: 60 * 1000,
   })
 }
 
@@ -34,6 +35,7 @@ export function useInvoice(id: number | null) {
     queryKey: ['invoices', id],
     queryFn: () => fetchInvoice(id!),
     enabled: id != null,
+    staleTime: 60 * 1000,
   })
 }
 

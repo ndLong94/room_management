@@ -94,7 +94,7 @@ export function LoginPage() {
     }
   }
 
-  const handleOAuthSuccess = (res: { data: { access_token: string; user?: { id: number; username: string; email: string; role: string; createdAt: string } } }) => {
+  const handleOAuthSuccess = (res: { data: { access_token: string; user?: { role?: string; [key: string]: unknown } } }) => {
     const token = res.data.access_token
     if (token) {
       localStorage.setItem('access_token', token)
@@ -106,7 +106,7 @@ export function LoginPage() {
 
   const handleGoogleSuccess = async (credential: string) => {
     try {
-      const res = await api.post<{ access_token: string; user?: { role?: string } }>('/api/auth/google', { credential })
+      const res = await api.post<{ access_token: string; user?: { role?: string; [key: string]: unknown } }>('/api/auth/google', { credential })
       handleOAuthSuccess(res)
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
@@ -125,7 +125,7 @@ export function LoginPage() {
           return
         }
         try {
-          const res = await api.post<{ access_token: string; user?: { role?: string } }>('/api/auth/facebook', {
+          const res = await api.post<{ access_token: string; user?: { role?: string; [key: string]: unknown } }>('/api/auth/facebook', {
             accessToken: response.authResponse.accessToken,
           })
           handleOAuthSuccess(res)

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import toast from 'react-hot-toast'
 import { useProperties } from '@/hooks/useProperties'
 import { useInvoices, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
 import { formatAmount, formatDate, isDueDateReached } from '@/utils'
