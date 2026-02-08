@@ -2,8 +2,11 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+# Copy deps first so this layer is cached when package*.json unchanged
 COPY package.json package-lock.json ./
-RUN npm ci
+# Cache npm store so re-builds (e.g. after package.json change) reuse downloaded libs
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 COPY . .
 # API relative to same origin (nginx will proxy /api to backend)
