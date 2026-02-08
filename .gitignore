@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+
+# Build / output
+target/
+dist/
+build/
+*.jar
+*.war
+*.class
+
+# Frontend
+frontend/dist/
+frontend/node_modules/
+*.tsbuildinfo
+
+# Backend
+backend/target/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE / editor
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.iml
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Uploads (optional: remove this line if you want to track uploads)
+# uploads/
+
+# Test / coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Misc
+*.bak
+*.tmp
+.cache/
