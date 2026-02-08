@@ -13,7 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("dev")
+@Profile("prod")
 @RequiredArgsConstructor
 @Slf4j
 public class AdminUserLoader implements ApplicationRunner {
