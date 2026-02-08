@@ -58,6 +58,7 @@ public class OccupantService {
                 .idBackUrl(request.getIdBackUrl() != null ? request.getIdBackUrl().trim() : null)
                 .tempResidenceUrl(request.getTempResidenceUrl() != null ? request.getTempResidenceUrl().trim() : null)
                 .note(request.getNote())
+                .zaloUserId(request.getZaloUserId() != null ? request.getZaloUserId().trim() : null)
                 .build();
         occupant = occupantRepository.save(occupant);
         return toResponse(occupant);
@@ -86,6 +87,7 @@ public class OccupantService {
         occupant.setIdBackUrl(request.getIdBackUrl() != null ? request.getIdBackUrl().trim() : null);
         occupant.setTempResidenceUrl(request.getTempResidenceUrl() != null ? request.getTempResidenceUrl().trim() : null);
         occupant.setNote(request.getNote());
+        occupant.setZaloUserId(request.getZaloUserId() != null ? request.getZaloUserId().trim() : null);
         occupant = occupantRepository.save(occupant);
         return toResponse(occupant);
     }
@@ -129,6 +131,7 @@ public class OccupantService {
                 .idBackUrl(o.getIdBackUrl())
                 .tempResidenceUrl(o.getTempResidenceUrl())
                 .note(o.getNote())
+                .zaloUserId(o.getZaloUserId())
                 .createdAt(o.getCreatedAt())
                 .build();
     }

@@ -1,3 +1,5 @@
+import type { FeedbackConversationMessage } from './feedback'
+
 export type UserRole = 'USER' | 'ADMIN'
 
 export type UserStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE'
@@ -46,8 +48,9 @@ export interface FeedbackItem {
   id: number
   userId: number
   content: string
-  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESOLVED'
   adminNote: string | null
+  conversation?: FeedbackConversationMessage[] | null
   createdAt: string
   updatedAt: string
 }

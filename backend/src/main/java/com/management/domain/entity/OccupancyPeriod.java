@@ -3,7 +3,9 @@ package com.management.domain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "occupancy_periods")
@@ -35,6 +37,18 @@ public class OccupancyPeriod {
 
     @Column(name = "end_year", nullable = false)
     private Integer endYear;
+
+    @Column(name = "deposit_amount", precision = 15, scale = 2)
+    private BigDecimal depositAmount;
+
+    @Column(name = "deposit_date")
+    private LocalDate depositDate;
+
+    @Column(name = "payment_day")
+    private Integer paymentDay;
+
+    @Column(name = "contract_url", length = 1000)
+    private String contractUrl;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

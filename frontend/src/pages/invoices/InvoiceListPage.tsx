@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useProperties } from '@/hooks/useProperties'
-import { useInvoices, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
+import { useInvoices, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice, useSendInvoiceZalo } from '@/hooks/useInvoices'
 import { formatAmount, formatDate, isDueDateReached } from '@/utils'
 
+const ENABLE_ZALO = import.meta.env.VITE_ENABLE_ZALO === 'true'
 const PAGE_SIZE = 10
 
 const currentYear = new Date().getFullYear()
@@ -93,6 +94,12 @@ export function InvoiceListPage() {
   const markPaid = useMarkInvoicePaid()
   const markUnpaid = useMarkInvoiceUnpaid()
   const deleteInvoice = useDeleteInvoice()
+  const sendZalo = useSendInvoiceZalo()
+
+  const handleSendZalo = (id: number) => {
+    if (!window.confirm('Gửi tin nhắn Zalo cho hóa đơn này đến người nhận đã chọn trong phòng?')) return
+    sendZalo.mutate(id)
+  }
 
   const handleMarkPaid = (id: number) => {
     if (!window.confirm('Đánh dấu hóa đơn này là đã thu tiền?')) return
@@ -285,6 +292,16 @@ export function InvoiceListPage() {
                     className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700"
                     onClick={(e) => e.stopPropagation()}
                   >
+                    {ENABLE_ZALO && (
+                      <button
+                        type="button"
+                        onClick={() => handleSendZalo(inv.id)}
+                        disabled={sendZalo.isPending}
+                        className="text-sm text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
+                      >
+                        Gửi Zalo
+                      </button>
+                    )}
                     {inv.status === 'UNPAID' ? (
                       <>
                         <button
@@ -403,33 +420,45 @@ export function InvoiceListPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        {inv.status === 'UNPAID' ? (
-                          <span className="flex flex-wrap justify-end gap-2">
+                        <span className="flex flex-wrap justify-end gap-2">
+                          {ENABLE_ZALO && (
                             <button
                               type="button"
-                              onClick={() => handleMarkPaid(inv.id)}
+                              onClick={() => handleSendZalo(inv.id)}
+                              disabled={sendZalo.isPending}
+                              className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
+                            >
+                              Gửi Zalo
+                            </button>
+                          )}
+                          {inv.status === 'UNPAID' ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleMarkPaid(inv.id)}
+                                className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                              >
+                                Đánh dấu đã thu
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(inv.id)}
+                                disabled={deleteInvoice.isPending}
+                                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                Xóa
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleMarkUnpaid(inv.id)}
                               className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                             >
-                              Đánh dấu đã thu
+                              Đánh dấu chưa thu
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(inv.id)}
-                              disabled={deleteInvoice.isPending}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                            >
-                              Xóa
-                            </button>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleMarkUnpaid(inv.id)}
-                            className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                          >
-                            Đánh dấu chưa thu
-                          </button>
-                        )}
+                          )}
+                        </span>
                       </td>
                     </tr>
                   ))

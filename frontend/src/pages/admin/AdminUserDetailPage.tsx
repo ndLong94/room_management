@@ -9,7 +9,7 @@ import {
   useApproveUser,
   useSetUserStatus,
 } from '@/hooks/useAdminUsers'
-import { useUpdateFeedbackAdmin } from '@/hooks/useFeedback'
+import { useUpdateFeedbackAdmin, useReplyAdminFeedback } from '@/hooks/useFeedback'
 import { formatAmount } from '@/utils'
 import type { UserStatus } from '@/types/user'
 
@@ -36,13 +36,49 @@ function StatusBadge({ status }: { status: UserStatus }) {
   )
 }
 
-function FeedbackStatusBadge({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' }) {
+function UserDetailFeedbackReply({
+  feedbackId,
+  replyAdmin,
+}: {
+  feedbackId: number
+  replyAdmin: ReturnType<typeof useReplyAdminFeedback>
+}) {
+  const [content, setContent] = useState('')
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const t = content.trim()
+    if (!t) return
+    replyAdmin.mutate({ feedbackId, content: t }, { onSuccess: () => setContent('') })
+  }
+  return (
+    <form onSubmit={handleSubmit} className="mt-3 w-full min-w-0 border-t border-slate-100 pt-3 dark:border-slate-700">
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Phản hồi lại user..."
+        rows={2}
+        maxLength={2000}
+        className="mb-2 min-h-[4rem] w-full min-w-0 resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+      />
+      <button
+        type="submit"
+        disabled={replyAdmin.isPending || !content.trim()}
+        className="min-h-[2.75rem] min-w-[8rem] rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-600"
+      >
+        {replyAdmin.isPending ? 'Đang gửi…' : 'Gửi phản hồi'}
+      </button>
+    </form>
+  )
+}
+
+function FeedbackStatusBadge({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESOLVED' }) {
   const map = {
     PENDING: { label: 'Chờ xử lý', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
     APPROVED: { label: 'Đồng ý', className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
     REJECTED: { label: 'Từ chối', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+    RESOLVED: { label: 'Đã giải quyết', className: 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200' },
   }
-  const { label, className } = map[status]
+  const { label, className } = map[status] ?? { label: status, className: '' }
   return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${className}`}>{label}</span>
 }
 
@@ -57,6 +93,7 @@ export function AdminUserDetailPage() {
   const approveUser = useApproveUser()
   const setUserStatus = useSetUserStatus()
   const updateFeedback = useUpdateFeedbackAdmin()
+  const replyAdmin = useReplyAdminFeedback()
 
   const [priceAmount, setPriceAmount] = useState('')
   const [priceNote, setPriceNote] = useState('')
@@ -269,55 +306,86 @@ export function AdminUserDetailPage() {
           <p className="text-sm text-slate-500">Chưa có ý kiến nào.</p>
         ) : (
           <ul className="space-y-4">
-            {(detail.feedbacks || []).map((f) => (
-              <li key={f.id} className="rounded border border-slate-100 p-3 dark:border-slate-700">
-                <p className="text-sm text-slate-900 dark:text-white">{f.content}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <FeedbackStatusBadge status={f.status} />
-                  <span className="text-xs text-slate-500">{formatDate(f.createdAt)}</span>
-                </div>
-                {f.adminNote && (
-                  <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">Phản hồi: {f.adminNote}</p>
-                )}
-                {f.status === 'PENDING' && (
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => updateFeedback.mutate({ feedbackId: f.id, status: 'APPROVED' })}
-                      disabled={updateFeedback.isPending}
-                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Đồng ý
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateFeedback.mutate({ feedbackId: f.id, status: 'REJECTED' })}
-                      disabled={updateFeedback.isPending}
-                      className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400"
-                    >
-                      Từ chối
-                    </button>
+            {(detail.feedbacks || []).map((f) => {
+              const conversation = f.conversation ?? []
+              return (
+                <li key={f.id} className="rounded border border-slate-100 p-3 dark:border-slate-700">
+                  <p className="text-sm text-slate-900 dark:text-white">{f.content}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <FeedbackStatusBadge status={f.status} />
+                    <span className="text-xs text-slate-500">{formatDate(f.createdAt)}</span>
                   </div>
-                )}
-                {(f.status === 'APPROVED' || f.status === 'REJECTED') && (
-                  <div className="mt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const note = window.prompt('Cập nhật phản hồi (admin note):', f.adminNote ?? '')
-                        if (note !== null) {
-                          updateFeedback.mutate({ feedbackId: f.id, adminNote: note })
-                        }
-                      }}
-                      disabled={updateFeedback.isPending}
-                      className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                    >
-                      Cập nhật phản hồi
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
+                  {f.adminNote && (
+                    <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">Phản hồi: {f.adminNote}</p>
+                  )}
+                  {conversation.length > 0 && (
+                    <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-700">
+                      <p className="text-xs font-medium text-slate-500">Hội thoại</p>
+                      {conversation.map((msg, i) => (
+                        <div
+                          key={i}
+                          className={`rounded px-2 py-1.5 text-xs ${
+                            msg.role === 'admin' ? 'bg-slate-100 dark:bg-slate-700/50' : 'bg-sky-50 dark:bg-sky-900/20'
+                          }`}
+                        >
+                          <span className="font-medium text-slate-500">{msg.role === 'admin' ? 'Admin' : 'User'}</span>
+                          <span className="ml-2 text-slate-500">{formatDate(msg.createdAt?.slice(0, 10))}</span>
+                          <p className="mt-0.5 text-slate-900 dark:text-white">{msg.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {f.status === 'PENDING' && (
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => updateFeedback.mutate({ feedbackId: f.id, status: 'APPROVED' })}
+                        disabled={updateFeedback.isPending}
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Đồng ý
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateFeedback.mutate({ feedbackId: f.id, status: 'REJECTED' })}
+                        disabled={updateFeedback.isPending}
+                        className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400"
+                      >
+                        Từ chối
+                      </button>
+                    </div>
+                  )}
+                  {(f.status === 'APPROVED' || f.status === 'REJECTED') && (
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => updateFeedback.mutate({ feedbackId: f.id, status: 'RESOLVED' })}
+                        disabled={updateFeedback.isPending}
+                        className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-600 disabled:opacity-50 dark:bg-slate-600"
+                      >
+                        Đã giải quyết
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const note = window.prompt('Cập nhật phản hồi (admin note):', f.adminNote ?? '')
+                          if (note !== null) {
+                            updateFeedback.mutate({ feedbackId: f.id, adminNote: note })
+                          }
+                        }}
+                        disabled={updateFeedback.isPending}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300"
+                      >
+                        Cập nhật phản hồi
+                      </button>
+                    </div>
+                  )}
+                  {f.status !== 'RESOLVED' && (
+                    <UserDetailFeedbackReply feedbackId={f.id} replyAdmin={replyAdmin} />
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

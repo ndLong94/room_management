@@ -15,6 +15,7 @@ import { InvoiceListPage } from '@/pages/invoices/InvoiceListPage'
 import { InvoiceDetailPage } from '@/pages/invoices/InvoiceDetailPage'
 import { AdminUserListPage } from '@/pages/admin/AdminUserListPage'
 import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage'
+import { AdminFeedbackPage } from '@/pages/admin/AdminFeedbackPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { ProfileEditPage } from '@/pages/ProfileEditPage'
 import { HomeOrRedirect } from '@/pages/HomeOrRedirect'
@@ -60,6 +61,7 @@ export function AppRoutes() {
         <Route path="profile/edit" element={<ProfileEditPage />} />
         <Route path="admin/users" element={<AdminRoute><AdminUserListPage /></AdminRoute>} />
         <Route path="admin/users/:userId" element={<AdminRoute><AdminUserDetailPage /></AdminRoute>} />
+        <Route path="admin/feedback" element={<AdminRoute><AdminFeedbackPage /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

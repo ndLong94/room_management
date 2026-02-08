@@ -12,6 +12,7 @@ export interface Occupant {
   idBackUrl: string | null
   tempResidenceUrl: string | null
   note: string | null
+  zaloUserId: string | null
   createdAt: string
 }
 
@@ -27,6 +28,7 @@ export interface CreateOccupantInput {
   idBackUrl?: string
   tempResidenceUrl?: string
   note?: string
+  zaloUserId?: string
 }
 
 export interface UpdateOccupantInput {
@@ -41,4 +43,5 @@ export interface UpdateOccupantInput {
   idBackUrl?: string
   tempResidenceUrl?: string
   note?: string
+  zaloUserId?: string
 }

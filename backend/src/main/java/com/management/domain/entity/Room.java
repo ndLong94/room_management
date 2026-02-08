@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "rooms")
@@ -41,6 +42,12 @@ public class Room {
     @Column(name = "payment_day")
     private Integer paymentDay;
 
+    @Column(name = "deposit_amount", precision = 15, scale = 2)
+    private BigDecimal depositAmount;
+
+    @Column(name = "deposit_date")
+    private LocalDate depositDate;
+
     /** Giá điện cố định (đ/tháng). Nếu set thì hóa đơn dùng số này thay vì tính từ đồng hồ. */
     @Column(name = "fixed_elec_amount", precision = 12, scale = 2)
     private BigDecimal fixedElecAmount;
@@ -56,6 +63,9 @@ public class Room {
     /** Chỉ số nước khởi điểm (khi bắt đầu cho thuê). Tháng đầu dùng làm chỉ số “tháng trước” để tính tiêu thụ. */
     @Column(name = "initial_water_reading", precision = 12, scale = 2)
     private BigDecimal initialWaterReading;
+
+    @Column(name = "invoice_recipient_occupant_id")
+    private Long invoiceRecipientOccupantId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

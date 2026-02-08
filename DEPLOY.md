@@ -38,6 +38,10 @@ nano .env
 - **Google:** Trong OAuth Client cấu hình "Authorized JavaScript origins" và "Authorized redirect URIs" trùng với URL app (vd: `https://yourdomain.com`).
 - **Facebook:** Trong App Settings → Basic thêm "App Domains" và trong Facebook Login → Settings thêm "Valid OAuth Redirect URIs".
 
+**Zalo (tùy chọn – gửi tin nhắn hóa đơn):**
+
+- `ZALO_ENABLED=true`, `ZALO_ACCESS_TOKEN=<token Zalo OA>`, `APP_BASE_URL=https://yourdomain.com` (hoặc `http://IP_DROPLET`). Xem [README.md](README.md#tích-hợp-zalo-gửi-tin-nhắn-hóa-đơn) để lấy token và Zalo user ID.
+
 ## 3. Build và chạy
 
 ```bash

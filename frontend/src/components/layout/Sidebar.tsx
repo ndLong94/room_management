@@ -11,12 +11,12 @@ const userNavItems = [
   { to: '/', label: 'Tổng quan' },
   { to: '/properties', label: 'Bất động sản' },
   { to: '/invoices', label: 'Hóa đơn' },
-  { to: '/settings/pricing', label: 'Đơn giá' },
   { to: '/profile', label: 'Thông tin cá nhân' },
 ]
 
 const adminNavItems = [
   { to: '/admin/users', label: 'Quản lý user' },
+  { to: '/admin/feedback', label: 'Ý kiến' },
   { to: '/profile', label: 'Thông tin cá nhân' },
 ]
 

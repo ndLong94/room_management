@@ -27,5 +27,6 @@ public class OccupantResponse {
     private String idBackUrl;
     private String tempResidenceUrl;
     private String note;
+    private String zaloUserId;
     private Instant createdAt;
 }

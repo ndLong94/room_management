@@ -118,11 +118,12 @@ export function RoomInvoicePage() {
     }
     const formCurrElec = parseFloat(elecReading) || 0
     const formCurrWater = parseFloat(waterReading) || 0
-    if (formCurrElec < minElec || formCurrWater < minWater) {
+    if (hasFormMeter && (formCurrElec < minElec || formCurrWater < minWater)) {
       window.alert('Chỉ số điện nước nhỏ hơn chỉ số lúc chuyển trạng thái hoặc chỉ số tháng trước. Vui lòng kiểm tra lại.')
       return
     }
-    if (!hasSavedMeter && hasFormMeter) {
+    // Khi tạo hóa đơn (không fixed): luôn lưu chỉ số tháng đó nếu form có nhập (create/update)
+    if (hasFormMeter) {
       try {
         await createMeterReading(propId, rId, {
           month: meterMonth,

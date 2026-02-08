@@ -33,6 +33,10 @@ public class Feedback {
     @Column(name = "admin_note", length = 1000)
     private String adminNote;
 
+    /** JSON array of messages: [{ "role": "admin"|"user", "userId": number, "content": string, "createdAt": "ISO" }] */
+    @Column(name = "conversation", columnDefinition = "TEXT")
+    private String conversation;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

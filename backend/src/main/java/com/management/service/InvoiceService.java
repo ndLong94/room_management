@@ -2,6 +2,7 @@ package com.management.service;
 
 import com.management.domain.entity.Invoice;
 import com.management.domain.entity.MeterReading;
+import com.management.domain.entity.Occupant;
 import com.management.domain.entity.Property;
 import com.management.domain.entity.Room;
 import com.management.domain.enums.InvoiceStatus;
@@ -14,6 +15,7 @@ import com.management.exception.PropertyNotFoundException;
 import com.management.exception.RoomNotFoundException;
 import com.management.repository.InvoiceRepository;
 import com.management.repository.MeterReadingRepository;
+import com.management.repository.OccupantRepository;
 import com.management.repository.PropertyRepository;
 import com.management.repository.RoomRepository;
 import com.management.security.UserPrincipal;
@@ -28,6 +30,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,6 +42,8 @@ public class InvoiceService {
     private final RoomRepository roomRepository;
     private final PropertyRepository propertyRepository;
     private final MeterReadingRepository meterReadingRepository;
+    private final OccupantRepository occupantRepository;
+    private final ZaloNotificationService zaloNotificationService;
 
     @Transactional
     public InvoiceResponse generate(Long roomId, int month, int year) {
@@ -64,6 +69,8 @@ public class InvoiceService {
         BigDecimal rentAmount = room.getRentPrice() != null ? room.getRentPrice() : BigDecimal.ZERO;
         BigDecimal elecAmount;
         BigDecimal waterAmount;
+        BigDecimal elecConsumption = null;
+        BigDecimal waterConsumption = null;
         boolean useFixedUtility = room.getFixedElecAmount() != null && room.getFixedWaterAmount() != null;
         if (useFixedUtility) {
             elecAmount = room.getFixedElecAmount().setScale(2, RoundingMode.HALF_UP);
@@ -78,7 +85,10 @@ public class InvoiceService {
             }
             int prevMonth = month == 1 ? 12 : month - 1;
             int prevYear = month == 1 ? year - 1 : year;
-            var prevReading = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear);
+            // Chỉ dùng chỉ số tháng trước khi đã có hóa đơn tháng trước (đã từng tính tiền tháng đó).
+            // Tháng đầu cho thuê không có hóa đơn tháng trước → dùng chỉ số init của phòng, tránh điện/nước ra 0đ.
+            boolean hasPrevInvoice = invoiceRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear).isPresent();
+            var prevReading = hasPrevInvoice ? meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear) : Optional.<MeterReading>empty();
             BigDecimal elecOld = prevReading.map(MeterReading::getElecReading)
                     .orElse(room.getInitialElecReading() != null ? room.getInitialElecReading() : BigDecimal.ZERO);
             BigDecimal waterOld = prevReading.map(MeterReading::getWaterReading)
@@ -87,6 +97,8 @@ public class InvoiceService {
             BigDecimal waterPrice = property.getWaterPrice() != null ? property.getWaterPrice() : BigDecimal.ZERO;
             BigDecimal elecDelta = currentReading.getElecReading().subtract(elecOld).max(BigDecimal.ZERO);
             BigDecimal waterDelta = currentReading.getWaterReading().subtract(waterOld).max(BigDecimal.ZERO);
+            elecConsumption = elecDelta;
+            waterConsumption = waterDelta;
             elecAmount = elecDelta.multiply(elecPrice).setScale(2, RoundingMode.HALF_UP);
             waterAmount = waterDelta.multiply(waterPrice).setScale(2, RoundingMode.HALF_UP);
         }
@@ -113,6 +125,8 @@ public class InvoiceService {
         invoice.setRentAmount(rentAmount);
         invoice.setElecAmount(elecAmount);
         invoice.setWaterAmount(waterAmount);
+        invoice.setElecConsumption(elecConsumption);
+        invoice.setWaterConsumption(waterConsumption);
         invoice.setOtherAmount(otherAmount);
         invoice.setTotalAmount(totalAmount);
         invoice = invoiceRepository.save(invoice);
@@ -175,6 +189,31 @@ public class InvoiceService {
         invoiceRepository.delete(invoice);
     }
 
+    /**
+     * Gửi tin nhắn Zalo cho hóa đơn tới người nhận đã chọn trong phòng (template hóa đơn phòng trọ).
+     * Người nhận: trong danh sách người ở của phòng, chọn 1 người làm người nhận Zalo và nhập Zalo User ID cho người đó.
+     */
+    public void sendInvoiceZalo(Long id) {
+        long userId = currentUserId();
+        Invoice invoice = invoiceRepository.findByIdAndOwnerUserId(id, userId)
+                .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + id));
+        Long roomId = invoice.getRoomId();
+        Room room = roomRepository.findById(roomId).orElseThrow(() -> new RoomNotFoundException("Room not found: " + roomId));
+        Long recipientOccupantId = room.getInvoiceRecipientOccupantId();
+        if (recipientOccupantId == null) {
+            throw new IllegalStateException("Chưa chọn người nhận Zalo cho phòng này. Vào danh sách người ở của phòng để chọn người nhận và nhập Zalo User ID.");
+        }
+        Occupant recipient = occupantRepository.findByIdAndRoomId(recipientOccupantId, roomId)
+                .orElseThrow(() -> new IllegalStateException("Người nhận Zalo không còn trong phòng."));
+        String zaloUserId = recipient.getZaloUserId();
+        if (zaloUserId == null || zaloUserId.isBlank()) {
+            throw new IllegalStateException("Người nhận chưa có Zalo User ID. Vào danh sách người ở để nhập Zalo User ID cho người nhận.");
+        }
+        InvoiceResponse response = toResponse(invoice);
+        String message = zaloNotificationService.buildInvoiceMessage(response, null);
+        zaloNotificationService.sendMessage(zaloUserId.trim(), message);
+    }
+
     private void ensureRoomOwnedByUser(Long roomId, long userId) {
         Long propertyId = getPropertyIdForRoom(roomId);
         if (!propertyRepository.existsByIdAndOwnerUserId(propertyId, userId)) {
@@ -197,10 +236,11 @@ public class InvoiceService {
         Room room = roomRepository.findById(i.getRoomId()).orElse(null);
         String roomName = room != null ? room.getName() : "—";
         Long propId = room != null ? room.getPropertyId() : null;
-        String propertyName = propId != null
-                ? propertyRepository.findById(propId).map(Property::getName).orElse("—")
-                : "—";
-        return buildResponse(i, roomName, propId, propertyName);
+        Property property = propId != null ? propertyRepository.findById(propId).orElse(null) : null;
+        String propertyName = property != null ? property.getName() : "—";
+        BigDecimal elecUnit = property != null && property.getElecPrice() != null ? property.getElecPrice() : null;
+        BigDecimal waterUnit = property != null && property.getWaterPrice() != null ? property.getWaterPrice() : null;
+        return buildResponse(i, roomName, propId, propertyName, elecUnit, waterUnit);
     }
 
     private InvoiceResponse toResponse(Invoice i, Map<Long, Room> roomMap, Map<Long, Property> propMap) {
@@ -209,10 +249,13 @@ public class InvoiceService {
         Long propId = room != null ? room.getPropertyId() : null;
         Property property = propId != null ? propMap.get(propId) : null;
         String propertyName = property != null ? property.getName() : "—";
-        return buildResponse(i, roomName, propId, propertyName);
+        BigDecimal elecUnit = property != null && property.getElecPrice() != null ? property.getElecPrice() : null;
+        BigDecimal waterUnit = property != null && property.getWaterPrice() != null ? property.getWaterPrice() : null;
+        return buildResponse(i, roomName, propId, propertyName, elecUnit, waterUnit);
     }
 
-    private static InvoiceResponse buildResponse(Invoice i, String roomName, Long propId, String propertyName) {
+    private static InvoiceResponse buildResponse(Invoice i, String roomName, Long propId, String propertyName,
+                                                 BigDecimal elecUnitPrice, BigDecimal waterUnitPrice) {
         return InvoiceResponse.builder()
                 .id(i.getId())
                 .propertyId(propId)
@@ -225,6 +268,10 @@ public class InvoiceService {
                 .rentAmount(i.getRentAmount())
                 .elecAmount(i.getElecAmount())
                 .waterAmount(i.getWaterAmount())
+                .elecConsumption(i.getElecConsumption())
+                .waterConsumption(i.getWaterConsumption())
+                .elecUnitPrice(elecUnitPrice)
+                .waterUnitPrice(waterUnitPrice)
                 .otherAmount(i.getOtherAmount())
                 .totalAmount(i.getTotalAmount())
                 .status(i.getStatus())

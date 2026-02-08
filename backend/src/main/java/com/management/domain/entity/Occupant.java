@@ -55,6 +55,9 @@ public class Occupant {
     @Column(columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "zalo_user_id", length = 100)
+    private String zaloUserId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

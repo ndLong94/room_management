@@ -6,6 +6,10 @@ export interface OccupancyPeriod {
   startYear: number | null
   endMonth: number
   endYear: number
+  depositAmount?: number | null
+  depositDate?: string | null
+  paymentDay?: number | null
+  contractUrl?: string | null
   createdAt: string
 }
 

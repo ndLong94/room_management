@@ -67,4 +67,11 @@ public class InvoiceController {
         invoiceService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/api/invoices/{id}/send-zalo")
+    @Operation(summary = "Gửi tin nhắn Zalo cho hóa đơn tới người nhận đã chọn trong phòng")
+    public ResponseEntity<Void> sendZalo(@PathVariable Long id) {
+        invoiceService.sendInvoiceZalo(id);
+        return ResponseEntity.noContent().build();
+    }
 }

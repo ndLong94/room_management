@@ -34,15 +34,17 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        String username = request.getUsername().trim().toLowerCase();
+        String email = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
             throw new AuthException("Tên đăng nhập đã tồn tại.");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new AuthException("Email đã được đăng ký.");
         }
         User user = User.builder()
-                .username(request.getUsername().trim())
-                .email(request.getEmail().trim().toLowerCase())
+                .username(username)
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .status(UserStatus.DRAFT)
                 .build();
@@ -51,7 +53,7 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername().trim())
+        User user = userRepository.findByUsernameIgnoreCase(request.getUsername().trim())
                 .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BadCredentialsException("Invalid username or password");
@@ -77,7 +79,8 @@ public class AuthService {
     }
 
     private AuthResponse findOrCreateOAuthUser(String email, String name) {
-        User user = userRepository.findByEmail(email).orElse(null);
+        String emailLower = email != null ? email.trim().toLowerCase() : "";
+        User user = userRepository.findByEmailIgnoreCase(emailLower).orElse(null);
         if (user != null) {
             if (user.getStatus() != UserStatus.ACTIVE) {
                 if (user.getStatus() == UserStatus.DRAFT) {
@@ -86,17 +89,17 @@ public class AuthService {
                 throw new AuthException("Tài khoản đã bị vô hiệu hóa.");
             }
         } else {
-            String username = email;
-            int at = email.indexOf('@');
+            String username = emailLower;
+            int at = emailLower.indexOf('@');
             if (at > 0) {
-                username = email.substring(0, at).replaceAll("[^a-zA-Z0-9]", "_");
+                username = emailLower.substring(0, at).replaceAll("[^a-zA-Z0-9]", "_").toLowerCase();
             }
-            if (userRepository.existsByUsername(username)) {
+            if (userRepository.existsByUsernameIgnoreCase(username)) {
                 username = username + "_" + UUID.randomUUID().toString().substring(0, 8);
             }
             user = User.builder()
                     .username(username)
-                    .email(email)
+                    .email(emailLower)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                     .status(UserStatus.ACTIVE)
                     .build();
@@ -117,7 +120,7 @@ public class AuthService {
         User user = userRepository.findById(principal.getUser().getId())
                 .orElseThrow(() -> new AuthException("User not found"));
         String newEmail = request.getEmail().trim().toLowerCase();
-        if (!newEmail.equals(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
+        if (userRepository.existsByEmailIgnoreCaseAndIdNot(newEmail, user.getId())) {
             throw new AuthException("Email đã được sử dụng bởi tài khoản khác");
         }
         user.setEmail(newEmail);

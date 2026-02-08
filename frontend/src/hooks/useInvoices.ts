@@ -7,6 +7,7 @@ import {
   markInvoicePaid,
   markInvoiceUnpaid,
   deleteInvoice,
+  sendInvoiceZalo,
 } from '@/api/invoices'
 import type { MarkPaidInput } from '@/types/invoice'
 
@@ -99,6 +100,16 @@ export function useDeleteInvoice() {
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
       toast.error(err?.response?.data?.message ?? 'Không thể xóa hóa đơn')
+    },
+  })
+}
+
+export function useSendInvoiceZalo() {
+  return useMutation({
+    mutationFn: (id: number) => sendInvoiceZalo(id),
+    onSuccess: () => toast.success('Đã gửi tin nhắn Zalo'),
+    onError: (err: { response?: { data?: { message?: string } } }) => {
+      toast.error(err?.response?.data?.message ?? 'Gửi Zalo thất bại')
     },
   })
 }

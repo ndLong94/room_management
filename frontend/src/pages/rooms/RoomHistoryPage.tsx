@@ -7,6 +7,7 @@ import {
 } from '@/api/occupancyPeriods'
 import { useProperty } from '@/hooks/useProperties'
 import { useRoom } from '@/hooks/useRooms'
+import { formatAmount, formatDate } from '@/utils'
 import type { OccupancyPeriod, OccupancyPeriodOccupant } from '@/types/occupancyPeriod'
 
 const DOC_BASE = import.meta.env.VITE_API_URL ?? ''
@@ -169,7 +170,18 @@ export function RoomHistoryPage() {
                     to={`/properties/${propId}/rooms/${rId}/history/${p.id}`}
                     className="block rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-slate-600"
                   >
-                    {periodLabel(p)}
+                    <span className="font-medium">{periodLabel(p)}</span>
+                    {(p.depositAmount != null || p.depositDate || p.paymentDay != null || p.contractUrl) && (
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {p.depositAmount != null && `Cọc: ${formatAmount(p.depositAmount)}`}
+                        {p.depositAmount != null && (p.depositDate || p.paymentDay != null) && ' • '}
+                        {p.depositDate && `Ngày cọc: ${formatDate(p.depositDate)}`}
+                        {p.depositDate && p.paymentDay != null && ' • '}
+                        {p.paymentDay != null && `Ngày thanh toán: ${p.paymentDay}`}
+                        {((p.depositAmount != null) || p.depositDate || p.paymentDay != null) && p.contractUrl && ' • '}
+                        {p.contractUrl && 'Có hợp đồng'}
+                      </p>
+                    )}
                   </Link>
                 </li>
               ))}
@@ -179,9 +191,42 @@ export function RoomHistoryPage() {
       ) : (
         <>
           {currentPeriod && (
-            <p className="mb-4 text-slate-600 dark:text-slate-300">
-              Kỳ: {periodLabel(currentPeriod)}
-            </p>
+            <div className="mb-4 space-y-2">
+              <p className="text-slate-600 dark:text-slate-300">
+                Kỳ: {periodLabel(currentPeriod)}
+              </p>
+              {(currentPeriod.depositAmount != null || currentPeriod.depositDate || currentPeriod.paymentDay != null || currentPeriod.contractUrl) && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/50">
+                  <p className="mb-1 font-medium text-slate-700 dark:text-slate-300">Thông tin đã lưu khi trả phòng</p>
+                  <dl className="grid gap-1 text-slate-600 dark:text-slate-400 sm:grid-cols-2">
+                    {currentPeriod.depositAmount != null && (
+                      <><dt className="text-slate-500 dark:text-slate-400">Tiền đặt cọc</dt><dd>{formatAmount(currentPeriod.depositAmount)}</dd></>
+                    )}
+                    {currentPeriod.depositDate && (
+                      <><dt className="text-slate-500 dark:text-slate-400">Ngày cọc</dt><dd>{formatDate(currentPeriod.depositDate)}</dd></>
+                    )}
+                    {currentPeriod.paymentDay != null && (
+                      <><dt className="text-slate-500 dark:text-slate-400">Ngày thanh toán</dt><dd>Mỗi tháng ngày {currentPeriod.paymentDay}</dd></>
+                    )}
+                    {currentPeriod.contractUrl && (
+                      <>
+                        <dt className="text-slate-500 dark:text-slate-400">Hợp đồng</dt>
+                        <dd>
+                          <a
+                            href={currentPeriod.contractUrl.startsWith('http') ? currentPeriod.contractUrl : `${DOC_BASE}${currentPeriod.contractUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sky-600 dark:text-sky-400"
+                          >
+                            Xem hợp đồng
+                          </a>
+                        </dd>
+                      </>
+                    )}
+                  </dl>
+                </div>
+              )}
+            </div>
           )}
           {loadingOccupants && <p className="text-slate-500">Đang tải danh sách người ở…</p>}
           {!loadingOccupants && (

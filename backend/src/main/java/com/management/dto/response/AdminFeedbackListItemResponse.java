@@ -13,10 +13,11 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FeedbackResponse {
+public class AdminFeedbackListItemResponse {
 
     private Long id;
     private Long userId;
+    private String username;
     private String content;
     private FeedbackStatus status;
     private String adminNote;

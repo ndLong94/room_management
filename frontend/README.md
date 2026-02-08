@@ -20,9 +20,10 @@ Your Node.js is too old. Check with `node -v`. You need **Node 18 or higher**.
 
 Create a `.env` file in the **frontend** directory (or copy from `.env.example`):
 
-| Variable        | Example                 | Description                    |
-|-----------------|-------------------------|--------------------------------|
-| `VITE_API_URL`  | `http://localhost:8080` | Backend API base URL           |
+| Variable            | Example                 | Description                                      |
+|---------------------|-------------------------|--------------------------------------------------|
+| `VITE_API_URL`      | `http://localhost:8080` | Backend API base URL                             |
+| `VITE_ENABLE_ZALO`  | `true`                  | Bật nút/ghi nhận Zalo (gửi hóa đơn). Mặc định ẩn. |
 
 Example:
 

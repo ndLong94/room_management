@@ -2,11 +2,12 @@ import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useProperty } from '@/hooks/useProperties'
-import { useRoom } from '@/hooks/useRooms'
+import { useRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useOccupants, useCreateOccupant, useUpdateOccupant, useDeleteOccupant } from '@/hooks/useOccupants'
 import { uploadFile } from '@/api/files'
 import type { Occupant } from '@/types/occupant'
 
+const ENABLE_ZALO = import.meta.env.VITE_ENABLE_ZALO === 'true'
 type UploadField = 'avatarUrl' | 'idFrontUrl' | 'idBackUrl' | 'tempResidenceUrl'
 
 export function OccupantsPage() {
@@ -19,6 +20,7 @@ export function OccupantsPage() {
   const [formPhone, setFormPhone] = useState('')
   const [formIdNumber, setFormIdNumber] = useState('')
   const [formNote, setFormNote] = useState('')
+  const [formZaloUserId, setFormZaloUserId] = useState('')
   const [uploading, setUploading] = useState<{ id: number; field: UploadField } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pendingUploadRef = useRef<{ occupant: Occupant; field: UploadField } | null>(null)
@@ -30,6 +32,7 @@ export function OccupantsPage() {
   const createOccupant = useCreateOccupant(propId ?? 0, rId ?? 0)
   const updateOccupant = useUpdateOccupant(propId ?? 0, rId ?? 0)
   const deleteOccupant = useDeleteOccupant(propId ?? 0, rId ?? 0)
+  const updateRoom = useUpdateRoom(propId ?? 0)
 
   const handleDelete = (id: number, name: string) => {
     if (window.confirm(`Xóa người ở "${name}"?`)) deleteOccupant.mutate(id)
@@ -41,6 +44,7 @@ export function OccupantsPage() {
     setFormPhone(o.phone ?? '')
     setFormIdNumber(o.idNumber ?? '')
     setFormNote(o.note ?? '')
+    setFormZaloUserId(o.zaloUserId ?? '')
   }
 
   const handleSaveEdit = () => {
@@ -53,6 +57,7 @@ export function OccupantsPage() {
           phone: formPhone.trim() || undefined,
           idNumber: formIdNumber.trim() || undefined,
           note: formNote.trim() || undefined,
+          zaloUserId: formZaloUserId.trim() || undefined,
         },
       },
       { onSuccess: () => setEditingId(null) }
@@ -67,6 +72,7 @@ export function OccupantsPage() {
         phone: formPhone.trim() || undefined,
         idNumber: formIdNumber.trim() || undefined,
         note: formNote.trim() || undefined,
+        zaloUserId: formZaloUserId.trim() || undefined,
       },
       {
         onSuccess: () => {
@@ -75,6 +81,7 @@ export function OccupantsPage() {
           setFormPhone('')
           setFormIdNumber('')
           setFormNote('')
+          setFormZaloUserId('')
         },
       }
     )
@@ -112,6 +119,7 @@ export function OccupantsPage() {
             idBackUrl: field === 'idBackUrl' ? url : occupant.idBackUrl ?? undefined,
             tempResidenceUrl: field === 'tempResidenceUrl' ? url : occupant.tempResidenceUrl ?? undefined,
             note: occupant.note ?? undefined,
+            zaloUserId: occupant.zaloUserId ?? undefined,
           },
         },
         {
@@ -190,6 +198,49 @@ export function OccupantsPage() {
         </p>
       )}
 
+      {ENABLE_ZALO && room && occupants && occupants.length > 0 && (
+        <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50">
+          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Người nhận tin Zalo hóa đơn
+          </label>
+          <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+            Chọn 1 người ở để nhận tin nhắn Zalo khi gửi hóa đơn. Người đó cần có Zalo User ID (nhập ở mục Sửa).
+          </p>
+          <select
+            value={room.invoiceRecipientOccupantId ?? ''}
+            onChange={(e) => {
+              const val = e.target.value
+              const recipientId = val === '' ? undefined : Number(val)
+              const input = {
+                name: room.name,
+                rentPrice: Number(room.rentPrice),
+                status: room.status,
+                contractUrl: room.contractUrl ?? undefined,
+                paymentDay: room.paymentDay ?? undefined,
+                depositAmount: room.depositAmount != null ? Number(room.depositAmount) : undefined,
+                depositDate: room.depositDate ?? undefined,
+                fixedElecAmount: room.fixedElecAmount != null ? Number(room.fixedElecAmount) : undefined,
+                fixedWaterAmount: room.fixedWaterAmount != null ? Number(room.fixedWaterAmount) : undefined,
+                initialElecReading: room.initialElecReading != null ? Number(room.initialElecReading) : undefined,
+                initialWaterReading: room.initialWaterReading != null ? Number(room.initialWaterReading) : undefined,
+                invoiceRecipientOccupantId: recipientId ?? undefined,
+              }
+              updateRoom.mutate({ roomId: rId!, input })
+            }}
+            disabled={updateRoom.isPending}
+            className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+          >
+            <option value="">Không chọn</option>
+            {occupants.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.fullName}
+                {o.zaloUserId ? ' (đã có Zalo ID)' : ' (chưa có Zalo ID)'}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {showForm && (
         <div className="mb-6 min-w-0 rounded-lg border border-slate-200 p-4 dark:border-slate-700">
           <h2 className="mb-3 font-semibold">Thêm người ở</h2>
@@ -226,6 +277,17 @@ export function OccupantsPage() {
                 className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
               />
             </div>
+            {ENABLE_ZALO && (
+              <div className="min-w-0 sm:col-span-2">
+                <label className="mb-1 block text-xs font-medium text-slate-500">Zalo User ID (để nhận tin hóa đơn)</label>
+                <input
+                  value={formZaloUserId}
+                  onChange={(e) => setFormZaloUserId(e.target.value)}
+                  placeholder="Nhập Zalo User ID nếu người này nhận tin Zalo"
+                  className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                />
+              </div>
+            )}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -285,6 +347,14 @@ export function OccupantsPage() {
                     placeholder="Ghi chú"
                     className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                   />
+                  {ENABLE_ZALO && (
+                    <input
+                      value={formZaloUserId}
+                      onChange={(e) => setFormZaloUserId(e.target.value)}
+                      placeholder="Zalo User ID (nhận tin hóa đơn)"
+                      className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    />
+                  )}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -308,6 +378,9 @@ export function OccupantsPage() {
                   <p className="truncate font-medium text-slate-900 dark:text-white">{o.fullName}</p>
                   <p className="truncate text-sm text-slate-600 dark:text-slate-300">{o.phone ?? '—'}</p>
                   <p className="truncate text-sm text-slate-500 dark:text-slate-400">{o.idNumber ?? '—'}</p>
+                  {ENABLE_ZALO && o.zaloUserId ? (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Zalo ID: {o.zaloUserId}</p>
+                  ) : null}
                   {o.note ? (
                     <p className="line-clamp-2 break-words text-sm text-slate-500 dark:text-slate-400" title={o.note}>
                       Ghi chú: {o.note}
@@ -384,10 +457,15 @@ export function OccupantsPage() {
               <th className="w-[12%] px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
                 CMND/CCCD
               </th>
-              <th className="min-w-0 w-[18%] px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
+              <th className="min-w-0 w-[14%] px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
                 Ghi chú
               </th>
-              <th className="min-w-0 w-[24%] px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
+              {ENABLE_ZALO && (
+                <th className="min-w-0 w-[12%] px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
+                  Zalo ID
+                </th>
+              )}
+              <th className="min-w-0 w-[18%] px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
                 Tài liệu (tải lên)
               </th>
               <th className="w-[20%] shrink-0 px-4 py-3 text-right text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
@@ -398,7 +476,7 @@ export function OccupantsPage() {
           <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-800/50">
             {!occupants?.length ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={ENABLE_ZALO ? 7 : 6} className="px-4 py-8 text-center text-slate-500">
                   Chưa có người ở. Thêm mới để quản lý.
                 </td>
               </tr>
@@ -436,6 +514,16 @@ export function OccupantsPage() {
                           className="w-full min-w-0 rounded border px-2 py-1 dark:bg-slate-700 dark:text-white"
                         />
                       </td>
+                      {ENABLE_ZALO && (
+                        <td className="min-w-0 px-4 py-3">
+                          <input
+                            value={formZaloUserId}
+                            onChange={(e) => setFormZaloUserId(e.target.value)}
+                            placeholder="Zalo User ID"
+                            className="w-full min-w-0 rounded border px-2 py-1 dark:bg-slate-700 dark:text-white"
+                          />
+                        </td>
+                      )}
                       <td className="min-w-0 px-4 py-3" />
                       <td className="shrink-0 px-4 py-3 text-right">
                         <button
@@ -471,6 +559,11 @@ export function OccupantsPage() {
                           {o.note ?? '—'}
                         </span>
                       </td>
+                      {ENABLE_ZALO && (
+                        <td className="min-w-0 truncate px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {o.zaloUserId ?? '—'}
+                        </td>
+                      )}
                       <td className="min-w-0 px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {(['avatarUrl', 'idFrontUrl', 'idBackUrl', 'tempResidenceUrl'] as const).map((field) => {

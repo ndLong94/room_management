@@ -5,7 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -20,5 +22,9 @@ public class OccupancyPeriodResponse {
     private Integer startYear;
     private Integer endMonth;
     private Integer endYear;
+    private BigDecimal depositAmount;
+    private LocalDate depositDate;
+    private Integer paymentDay;
+    private String contractUrl;
     private Instant createdAt;
 }

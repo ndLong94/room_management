@@ -60,6 +60,8 @@ public class RoomService {
                 .rentPrice(request.getRentPrice() != null ? request.getRentPrice() : BigDecimal.ZERO)
                 .status(request.getStatus() != null ? request.getStatus() : RoomStatus.VACANT)
                 .paymentDay(request.getPaymentDay())
+                .depositAmount(request.getDepositAmount())
+                .depositDate(request.getDepositDate())
                 .fixedElecAmount(request.getFixedElecAmount())
                 .fixedWaterAmount(request.getFixedWaterAmount())
                 .initialElecReading(request.getInitialElecReading())
@@ -81,22 +83,32 @@ public class RoomService {
         room.setName(request.getName().trim());
         room.setRentPrice(request.getRentPrice() != null ? request.getRentPrice() : BigDecimal.ZERO);
         room.setStatus(newStatus);
-        room.setContractUrl(request.getContractUrl() != null ? request.getContractUrl().trim() : null);
-        room.setPaymentDay(request.getPaymentDay());
+        if (newStatus == RoomStatus.VACANT) {
+            room.setContractUrl(null);
+            room.setPaymentDay(null);
+            room.setDepositAmount(null);
+            room.setDepositDate(null);
+        } else {
+            room.setContractUrl(request.getContractUrl() != null ? request.getContractUrl().trim() : null);
+            room.setPaymentDay(request.getPaymentDay());
+            room.setDepositAmount(request.getDepositAmount());
+            room.setDepositDate(request.getDepositDate());
+        }
         room.setFixedElecAmount(request.getFixedElecAmount());
         room.setFixedWaterAmount(request.getFixedWaterAmount());
         if (request.getInitialElecReading() != null) room.setInitialElecReading(request.getInitialElecReading());
         if (request.getInitialWaterReading() != null) room.setInitialWaterReading(request.getInitialWaterReading());
+        Long recipientId = request.getInvoiceRecipientOccupantId();
+        if (recipientId != null && !occupantRepository.findByIdAndRoomId(recipientId, roomId).isPresent()) {
+            throw new IllegalArgumentException("Người nhận Zalo phải là người ở trong phòng này.");
+        }
+        room.setInvoiceRecipientOccupantId(recipientId);
         room = roomRepository.save(room);
         return toResponse(room);
     }
 
-    /** When switching room from OCCUPIED to VACANT: create an occupancy period (snapshot) and delete current occupants. */
+    /** When switching room from OCCUPIED to VACANT: create occupancy period (snapshot incl. deposit/contract), delete occupants, clear room deposit/contract. */
     private void archiveOccupantsAndVacate(Long propertyId, Long roomId, Room room) {
-        List<Occupant> occupants = occupantRepository.findByRoomIdOrderByCreatedAtDesc(roomId);
-        if (occupants.isEmpty()) {
-            return;
-        }
         LocalDate now = LocalDate.now();
         OccupancyPeriod period = OccupancyPeriod.builder()
                 .roomId(roomId)
@@ -105,8 +117,13 @@ public class RoomService {
                 .startYear(null)
                 .endMonth(now.getMonthValue())
                 .endYear(now.getYear())
+                .depositAmount(room.getDepositAmount())
+                .depositDate(room.getDepositDate())
+                .paymentDay(room.getPaymentDay())
+                .contractUrl(room.getContractUrl())
                 .build();
         period = occupancyPeriodRepository.save(period);
+        List<Occupant> occupants = occupantRepository.findByRoomIdOrderByCreatedAtDesc(roomId);
         for (Occupant o : occupants) {
             OccupancyPeriodOccupant po = OccupancyPeriodOccupant.builder()
                     .periodId(period.getId())
@@ -124,7 +141,13 @@ public class RoomService {
                     .build();
             occupancyPeriodOccupantRepository.save(po);
         }
-        occupantRepository.deleteAll(occupants);
+        if (!occupants.isEmpty()) {
+            occupantRepository.deleteAll(occupants);
+        }
+        room.setDepositAmount(null);
+        room.setDepositDate(null);
+        room.setPaymentDay(null);
+        room.setContractUrl(null);
     }
 
     @Transactional
@@ -157,10 +180,13 @@ public class RoomService {
                 .status(r.getStatus())
                 .contractUrl(r.getContractUrl())
                 .paymentDay(r.getPaymentDay())
+                .depositAmount(r.getDepositAmount())
+                .depositDate(r.getDepositDate())
                 .fixedElecAmount(r.getFixedElecAmount())
                 .fixedWaterAmount(r.getFixedWaterAmount())
                 .initialElecReading(r.getInitialElecReading())
                 .initialWaterReading(r.getInitialWaterReading())
+                .invoiceRecipientOccupantId(r.getInvoiceRecipientOccupantId())
                 .createdAt(r.getCreatedAt())
                 .build();
     }

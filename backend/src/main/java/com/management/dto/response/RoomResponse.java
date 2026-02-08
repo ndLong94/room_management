@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -22,9 +23,12 @@ public class RoomResponse {
     private RoomStatus status;
     private String contractUrl;
     private Integer paymentDay;
+    private BigDecimal depositAmount;
+    private LocalDate depositDate;
     private BigDecimal fixedElecAmount;
     private BigDecimal fixedWaterAmount;
     private BigDecimal initialElecReading;
     private BigDecimal initialWaterReading;
+    private Long invoiceRecipientOccupantId;
     private Instant createdAt;
 }

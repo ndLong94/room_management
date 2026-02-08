@@ -1,26 +1,23 @@
 package com.management.dto.response;
 
-import com.management.domain.enums.FeedbackStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FeedbackResponse {
+public class FeedbackConversationMessage {
 
-    private Long id;
+    public static final String ROLE_ADMIN = "admin";
+    public static final String ROLE_USER = "user";
+
+    private String role;   // "admin" | "user"
     private Long userId;
     private String content;
-    private FeedbackStatus status;
-    private String adminNote;
-    private List<FeedbackConversationMessage> conversation;
     private Instant createdAt;
-    private Instant updatedAt;
 }

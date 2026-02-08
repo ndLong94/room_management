@@ -1,6 +1,8 @@
 package com.management.controller;
 
 import com.management.dto.request.CreateFeedbackRequest;
+import com.management.dto.request.FeedbackReplyRequest;
+import com.management.dto.request.UpdateMyFeedbackRequest;
 import com.management.dto.response.FeedbackResponse;
 import com.management.service.FeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,5 +33,28 @@ public class FeedbackController {
     @Operation(summary = "List my feedbacks")
     public ResponseEntity<List<FeedbackResponse>> listMine() {
         return ResponseEntity.ok(feedbackService.listMy());
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update my feedback (only when status is PENDING)")
+    public ResponseEntity<FeedbackResponse> updateMine(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateMyFeedbackRequest request) {
+        return ResponseEntity.ok(feedbackService.updateMyFeedback(id, request.getContent()));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete my feedback (only when status is PENDING)")
+    public ResponseEntity<Void> deleteMine(@PathVariable Long id) {
+        feedbackService.deleteMyFeedback(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/reply")
+    @Operation(summary = "User replies to feedback conversation (not when RESOLVED)")
+    public ResponseEntity<FeedbackResponse> reply(
+            @PathVariable Long id,
+            @Valid @RequestBody FeedbackReplyRequest request) {
+        return ResponseEntity.ok(feedbackService.addReplyByUser(id, request.getContent()));
     }
 }

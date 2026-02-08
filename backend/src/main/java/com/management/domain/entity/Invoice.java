@@ -41,8 +41,14 @@ public class Invoice {
     @Column(name = "elec_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal elecAmount;
 
+    @Column(name = "elec_consumption", precision = 12, scale = 2)
+    private BigDecimal elecConsumption;
+
     @Column(name = "water_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal waterAmount;
+
+    @Column(name = "water_consumption", precision = 12, scale = 2)
+    private BigDecimal waterConsumption;
 
     @Column(name = "other_amount", nullable = false, precision = 12, scale = 2)
     @Builder.Default

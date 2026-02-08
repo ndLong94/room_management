@@ -82,6 +82,10 @@ public class OccupancyPeriodService {
                 .startYear(p.getStartYear())
                 .endMonth(p.getEndMonth())
                 .endYear(p.getEndYear())
+                .depositAmount(p.getDepositAmount())
+                .depositDate(p.getDepositDate())
+                .paymentDay(p.getPaymentDay())
+                .contractUrl(p.getContractUrl())
                 .createdAt(p.getCreatedAt())
                 .build();
     }

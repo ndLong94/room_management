@@ -27,6 +27,12 @@ public class InvoiceResponse {
     private BigDecimal rentAmount;
     private BigDecimal elecAmount;
     private BigDecimal waterAmount;
+    /** Tiêu thụ điện (kWh) – để hiển thị template Zalo. */
+    private BigDecimal elecConsumption;
+    /** Tiêu thụ nước (m³) – để hiển thị template Zalo. */
+    private BigDecimal waterConsumption;
+    private BigDecimal elecUnitPrice;
+    private BigDecimal waterUnitPrice;
     private BigDecimal otherAmount;
     private BigDecimal totalAmount;
     private InvoiceStatus status;

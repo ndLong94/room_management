@@ -11,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -34,6 +35,11 @@ public class UpdateRoomRequest {
 
     private Integer paymentDay;
 
+    @DecimalMin("0")
+    private BigDecimal depositAmount;
+
+    private LocalDate depositDate;
+
     /** Giá điện cố định đ/tháng (khi dùng option giá cứng). */
     @DecimalMin("0")
     private BigDecimal fixedElecAmount;
@@ -49,4 +55,7 @@ public class UpdateRoomRequest {
     /** Chỉ số nước khởi điểm (chỉ set khi chuyển trạng thái sang Cho thuê và nhập chỉ số đồng hồ). */
     @DecimalMin("0")
     private BigDecimal initialWaterReading;
+
+    /** ID người ở được chọn làm người nhận tin Zalo hóa đơn (null = chưa chọn). */
+    private Long invoiceRecipientOccupantId;
 }

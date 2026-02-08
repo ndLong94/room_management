@@ -96,15 +96,17 @@ public class AdminUserService {
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
         ensureAdmin();
-        if (userRepository.existsByUsername(request.getUsername().trim())) {
+        String username = request.getUsername().trim().toLowerCase();
+        String email = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
             throw new AuthException("Username already taken");
         }
-        if (userRepository.existsByEmail(request.getEmail().trim().toLowerCase())) {
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new AuthException("Email already registered");
         }
         User user = User.builder()
-                .username(request.getUsername().trim())
-                .email(request.getEmail().trim().toLowerCase())
+                .username(username)
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(com.management.domain.enums.UserRole.USER)
                 .status(UserStatus.ACTIVE)

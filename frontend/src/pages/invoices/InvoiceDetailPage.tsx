@@ -1,7 +1,9 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { useInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
+import { useInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice, useSendInvoiceZalo } from '@/hooks/useInvoices'
 import { formatAmount, formatDate, isDueDateReached } from '@/utils'
+
+const ENABLE_ZALO = import.meta.env.VITE_ENABLE_ZALO === 'true'
 
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -13,6 +15,7 @@ export function InvoiceDetailPage() {
   const markPaid = useMarkInvoicePaid()
   const markUnpaid = useMarkInvoiceUnpaid()
   const deleteInvoice = useDeleteInvoice()
+  const sendZalo = useSendInvoiceZalo()
 
   if (invoiceId == null) return <p className="text-red-600">Mã hóa đơn không hợp lệ.</p>
   if (isLoading) return <p className="text-slate-500">Đang tải…</p>
@@ -91,13 +94,18 @@ export function InvoiceDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-          {invoice.propertyId != null && invoice.roomId != null && (
-            <Link
-              to={`/properties/${invoice.propertyId}/rooms/${invoice.roomId}/invoice`}
+          {ENABLE_ZALO && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!window.confirm('Gửi tin nhắn Zalo cho hóa đơn này đến người nhận đã chọn trong phòng?')) return
+                sendZalo.mutate(invoice.id)
+              }}
+              disabled={sendZalo.isPending}
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
             >
-              Xem theo phòng
-            </Link>
+              {sendZalo.isPending ? 'Đang gửi…' : 'Gửi Zalo'}
+            </button>
           )}
           {invoice.status === 'UNPAID' ? (
             <>

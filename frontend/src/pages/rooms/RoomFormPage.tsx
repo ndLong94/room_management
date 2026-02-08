@@ -22,6 +22,10 @@ const STATUS_OPTIONS: { value: 'VACANT' | 'OCCUPIED'; label: string }[] = [
   { value: 'OCCUPIED', label: 'Đã cho thuê' },
 ]
 
+function todayDateString(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 type FormValues = z.infer<typeof schema>
 
 type Props = { mode: 'new' | 'edit' }
@@ -43,12 +47,16 @@ export function RoomFormPage({ mode }: Props) {
     rentPrice: number
     status: RoomStatus
     paymentDay?: number
+    depositAmount?: number
+    depositDate?: string
     contractUrl?: string
     fixedElecAmount?: number
     fixedWaterAmount?: number
     initialElecReading?: number
     initialWaterReading?: number
   } | null>(null)
+  const [depositAmount, setDepositAmount] = useState<number | ''>('')
+  const [depositDate, setDepositDate] = useState(() => todayDateString())
   const [meterElec, setMeterElec] = useState('')
   const [meterWater, setMeterWater] = useState('')
   const [fixedElec, setFixedElec] = useState('')
@@ -76,6 +84,8 @@ export function RoomFormPage({ mode }: Props) {
       reset({ name: room.name, rentPrice: room.rentPrice ?? 0, status: room.status })
       setContractUrl(room.contractUrl ?? null)
       setPaymentDay(room.paymentDay ?? '')
+      setDepositAmount(room.depositAmount != null ? Number(room.depositAmount) : '')
+      setDepositDate(room.depositDate ?? todayDateString())
     }
   }, [isEdit, room, reset])
 
@@ -113,6 +123,8 @@ export function RoomFormPage({ mode }: Props) {
     status: values.status as RoomStatus,
     ...(isEdit && { contractUrl: contractUrl ?? undefined }),
     paymentDay: paymentDay === '' ? undefined : paymentDay,
+    depositAmount: depositAmount === '' ? undefined : depositAmount,
+    depositDate: depositDate.trim() || undefined,
     ...overrides,
   })
 
@@ -133,7 +145,12 @@ export function RoomFormPage({ mode }: Props) {
     const needOccupiedModal =
       values.status === 'OCCUPIED' && (!isEdit || room?.status === 'VACANT')
     if (needOccupiedModal) {
-      setPendingPayload(buildPayload(values))
+      const defaultPaymentDay = paymentDay === '' ? new Date().getDate() : paymentDay
+      setPaymentDay(defaultPaymentDay === '' ? '' : defaultPaymentDay)
+      setPendingPayload({
+        ...buildPayload(values),
+        paymentDay: defaultPaymentDay === '' ? undefined : (defaultPaymentDay as number),
+      })
       setShowOccupiedModal(true)
       setMeterElec('')
       setMeterWater('')
@@ -311,6 +328,32 @@ export function RoomFormPage({ mode }: Props) {
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Hóa đơn tự động tạo lúc 6h sáng vào ngày này mỗi tháng (nếu chưa có).
           </p>
+        </div>
+        <div>
+          <label htmlFor="depositAmount" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Tiền đặt cọc (đ)
+          </label>
+          <input
+            id="depositAmount"
+            type="number"
+            min="0"
+            step="1000"
+            value={depositAmount === '' ? '' : depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value === '' ? '' : Number(e.target.value))}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+          />
+        </div>
+        <div>
+          <label htmlFor="depositDate" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Ngày cọc
+          </label>
+          <input
+            id="depositDate"
+            type="date"
+            value={depositDate}
+            onChange={(e) => setDepositDate(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+          />
         </div>
         {isEdit && (
           <div>

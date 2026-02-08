@@ -11,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -31,6 +32,11 @@ public class CreateRoomRequest {
     private RoomStatus status = RoomStatus.VACANT;
 
     private Integer paymentDay;
+
+    @DecimalMin("0")
+    private BigDecimal depositAmount;
+
+    private LocalDate depositDate;
 
     @DecimalMin("0")
     private BigDecimal fixedElecAmount;

@@ -40,6 +40,10 @@ app:
     facebook:
       app-id: ${FACEBOOK_APP_ID:}
       app-secret: ${FACEBOOK_APP_SECRET:}
+  zalo:
+    access-token: ${ZALO_ACCESS_TOKEN:}
+    enabled: ${ZALO_ENABLED:false}
+  base-url: ${APP_BASE_URL:http://localhost:5173}
 
 springdoc:
   api-docs:

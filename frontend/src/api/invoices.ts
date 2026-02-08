@@ -43,3 +43,7 @@ export async function markInvoiceUnpaid(id: number): Promise<Invoice> {
 export async function deleteInvoice(id: number): Promise<void> {
   await api.delete(`/api/invoices/${id}`)
 }
+
+export async function sendInvoiceZalo(id: number): Promise<void> {
+  await api.post(`/api/invoices/${id}/send-zalo`)
+}

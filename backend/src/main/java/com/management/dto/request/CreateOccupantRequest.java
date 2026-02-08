@@ -46,4 +46,7 @@ public class CreateOccupantRequest {
     private String tempResidenceUrl;
 
     private String note;
+
+    @Size(max = 100)
+    private String zaloUserId;
 }
