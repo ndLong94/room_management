@@ -9,6 +9,7 @@ import { useProperty } from '@/hooks/useProperties'
 import { useCreateRoom, useRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useOccupants } from '@/hooks/useOccupants'
 import { uploadFile } from '@/api/files'
+import { createMeterReading } from '@/api/meterReadings'
 
 const schema = z.object({
   name: z.string().min(1, 'Vui lòng nhập tên phòng').max(255),
@@ -35,6 +36,24 @@ export function RoomFormPage({ mode }: Props) {
   const [paymentDay, setPaymentDay] = useState<number | ''>('')
   const [uploadingContract, setUploadingContract] = useState(false)
   const contractInputRef = useRef<HTMLInputElement>(null)
+
+  const [showOccupiedModal, setShowOccupiedModal] = useState(false)
+  const [pendingPayload, setPendingPayload] = useState<{
+    name: string
+    rentPrice: number
+    status: RoomStatus
+    paymentDay?: number
+    contractUrl?: string
+    fixedElecAmount?: number
+    fixedWaterAmount?: number
+    initialElecReading?: number
+    initialWaterReading?: number
+  } | null>(null)
+  const [meterElec, setMeterElec] = useState('')
+  const [meterWater, setMeterWater] = useState('')
+  const [fixedElec, setFixedElec] = useState('')
+  const [fixedWater, setFixedWater] = useState('')
+  const [occupiedSubmitting, setOccupiedSubmitting] = useState(false)
 
   const { data: property, isLoading: loadingProperty } = useProperty(propId)
   const { data: room, isLoading: loadingRoom } = useRoom(propId, isEdit ? rId : null)
@@ -88,6 +107,15 @@ export function RoomFormPage({ mode }: Props) {
     if (!room) return <p className="text-red-600">Không tìm thấy phòng.</p>
   }
 
+  const buildPayload = (values: FormValues, overrides?: { fixedElecAmount?: number; fixedWaterAmount?: number }) => ({
+    name: values.name.trim(),
+    rentPrice: values.rentPrice,
+    status: values.status as RoomStatus,
+    ...(isEdit && { contractUrl: contractUrl ?? undefined }),
+    paymentDay: paymentDay === '' ? undefined : paymentDay,
+    ...overrides,
+  })
+
   const onSubmit = async (values: FormValues) => {
     if (
       isEdit &&
@@ -102,13 +130,18 @@ export function RoomFormPage({ mode }: Props) {
       )
       if (!ok) return
     }
-    const payload = {
-      name: values.name.trim(),
-      rentPrice: values.rentPrice,
-      status: values.status as RoomStatus,
-      ...(isEdit && { contractUrl: contractUrl ?? undefined }),
-      paymentDay: paymentDay === '' ? undefined : paymentDay,
+    const needOccupiedModal =
+      values.status === 'OCCUPIED' && (!isEdit || room?.status === 'VACANT')
+    if (needOccupiedModal) {
+      setPendingPayload(buildPayload(values))
+      setShowOccupiedModal(true)
+      setMeterElec('')
+      setMeterWater('')
+      setFixedElec('')
+      setFixedWater('')
+      return
     }
+    const payload = buildPayload(values)
     if (isEdit && rId != null) {
       updateRoom.mutate(
         { roomId: rId, input: payload },
@@ -116,6 +149,89 @@ export function RoomFormPage({ mode }: Props) {
       )
     } else {
       createRoom.mutate(payload, { onSuccess: () => navigate(`/properties/${propId}/rooms`) })
+    }
+  }
+
+  const now = new Date()
+  const currentMonth = now.getMonth() + 1
+  const currentYear = now.getFullYear()
+
+  const confirmOccupiedWithMeter = async () => {
+    if (!pendingPayload || propId == null) return
+    const elec = parseFloat(meterElec)
+    const water = parseFloat(meterWater)
+    if (Number.isNaN(elec) || Number.isNaN(water) || elec < 0 || water < 0) {
+      toast.error('Vui lòng nhập chỉ số điện và nước hợp lệ (số ≥ 0).')
+      return
+    }
+    const payloadWithInitial = {
+      ...pendingPayload,
+      initialElecReading: elec,
+      initialWaterReading: water,
+    }
+    setOccupiedSubmitting(true)
+    try {
+      if (isEdit && rId != null) {
+        await updateRoom.mutateAsync({ roomId: rId, input: payloadWithInitial })
+        await createMeterReading(propId, rId, {
+          month: currentMonth,
+          year: currentYear,
+          elecReading: elec,
+          waterReading: water,
+        })
+        toast.success('Đã cập nhật phòng và lưu chỉ số điện nước.')
+        setShowOccupiedModal(false)
+        setPendingPayload(null)
+        navigate(`/properties/${propId}/rooms`)
+      } else {
+        const created = await createRoom.mutateAsync(payloadWithInitial)
+        await createMeterReading(propId, created.id, {
+          month: currentMonth,
+          year: currentYear,
+          elecReading: elec,
+          waterReading: water,
+        })
+        toast.success('Đã tạo phòng và lưu chỉ số điện nước.')
+        setShowOccupiedModal(false)
+        setPendingPayload(null)
+        navigate(`/properties/${propId}/rooms`)
+      }
+    } catch {
+      toast.error('Không thể lưu. Thử lại.')
+    } finally {
+      setOccupiedSubmitting(false)
+    }
+  }
+
+  const confirmOccupiedWithFixed = async () => {
+    if (!pendingPayload || propId == null) return
+    const elec = parseFloat(fixedElec)
+    const water = parseFloat(fixedWater)
+    if (Number.isNaN(elec) || Number.isNaN(water) || elec < 0 || water < 0) {
+      toast.error('Vui lòng nhập giá điện và nước hợp lệ (số ≥ 0, đơn vị đ/tháng).')
+      return
+    }
+    const payloadWithFixed = {
+      ...pendingPayload,
+      fixedElecAmount: elec,
+      fixedWaterAmount: water,
+    }
+    setOccupiedSubmitting(true)
+    try {
+      if (isEdit && rId != null) {
+        await updateRoom.mutateAsync({ roomId: rId, input: payloadWithFixed })
+        toast.success('Đã cập nhật phòng với giá điện nước cố định.')
+      } else {
+        await createRoom.mutateAsync(payloadWithFixed)
+        toast.success('Đã tạo phòng với giá điện nước cố định.')
+      }
+      setShowOccupiedModal(false)
+      setPendingPayload(null)
+      navigate(`/properties/${propId}/rooms`)
+    } catch {
+      toast.error('Không thể lưu. Thử lại.')
+    } finally {
+      setOccupiedSubmitting(false)
     }
   }
 
@@ -246,6 +362,106 @@ export function RoomFormPage({ mode }: Props) {
           </Link>
         </div>
       </form>
+
+      {/* Modal: khi chuyển sang Đã cho thuê — nhập điện nước */}
+      {showOccupiedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+            <h2 className="mb-2 text-lg font-semibold">Chuyển sang Đã cho thuê</h2>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+              Cần nhập thông tin điện nước hiện tại của phòng. Chọn một trong hai cách:
+            </p>
+
+            <div className="space-y-6">
+              <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-600">
+                <h3 className="mb-2 font-medium">1. Nhập chỉ số đồng hồ điện nước hiện tại</h3>
+                <p className="mb-3 text-xs text-slate-500">Ghi lại chỉ số điện và nước trên đồng hồ tại thời điểm cho thuê.</p>
+                <div className="mb-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">Chỉ số điện</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={meterElec}
+                      onChange={(e) => setMeterElec(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">Chỉ số nước</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={meterWater}
+                      onChange={(e) => setMeterWater(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={confirmOccupiedWithMeter}
+                  disabled={occupiedSubmitting}
+                  className="w-full rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+                >
+                  {occupiedSubmitting ? 'Đang xử lý…' : 'Xác nhận — dùng chỉ số đồng hồ'}
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-600">
+                <h3 className="mb-2 font-medium">2. Nhập giá cố định hàng tháng</h3>
+                <p className="mb-3 text-xs text-slate-500">Ví dụ: điện 100.000 đ/tháng, nước 50.000 đ/tháng.</p>
+                <div className="mb-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">Điện (đ/tháng)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={fixedElec}
+                      onChange={(e) => setFixedElec(e.target.value)}
+                      placeholder="100000"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">Nước (đ/tháng)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={fixedWater}
+                      onChange={(e) => setFixedWater(e.target.value)}
+                      placeholder="50000"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={confirmOccupiedWithFixed}
+                  disabled={occupiedSubmitting}
+                  className="w-full rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
+                >
+                  {occupiedSubmitting ? 'Đang xử lý…' : 'Xác nhận — dùng giá cố định'}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => { setShowOccupiedModal(false); setPendingPayload(null) }}
+              className="mt-4 w-full rounded-lg border border-slate-300 py-2 text-sm font-medium dark:border-slate-600 dark:text-slate-300"
+            >
+              Hủy
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

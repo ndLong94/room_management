@@ -34,7 +34,10 @@ export function RoomListPage() {
   }
 
   const statusLabel = (s: string) => (s === 'OCCUPIED' ? 'Đã cho thuê' : 'Còn trống')
-  const paymentDayDisplay = (r: { paymentDay?: number | null }) => (r.paymentDay != null ? r.paymentDay : 1)
+  const paymentDayDisplay = (r: { paymentDay?: number | null }) => {
+    const day = r.paymentDay != null ? r.paymentDay : 1
+    return `Ngày ${day} hàng tháng`
+  }
 
   if (id == null) return <p className="text-red-600">Bất động sản không hợp lệ.</p>
   if (loadingProperty) return <p className="text-slate-500">Đang tải…</p>

@@ -1,16 +1,18 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { useInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid } from '@/hooks/useInvoices'
+import { useInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
 import { formatAmount, formatDate, isDueDateReached } from '@/utils'
 
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const invoiceId = id ? parseInt(id, 10) : null
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const { data: invoice, isLoading, error } = useInvoice(invoiceId)
   const markPaid = useMarkInvoicePaid()
   const markUnpaid = useMarkInvoiceUnpaid()
+  const deleteInvoice = useDeleteInvoice()
 
   if (invoiceId == null) return <p className="text-red-600">Mã hóa đơn không hợp lệ.</p>
   if (isLoading) return <p className="text-slate-500">Đang tải…</p>
@@ -98,25 +100,44 @@ export function InvoiceDetailPage() {
             </Link>
           )}
           {invoice.status === 'UNPAID' ? (
-            <button
-              type="button"
-              onClick={() => {
-                const paidAt = new Date().toISOString()
-                const method = window.prompt('Phương thức thanh toán (tùy chọn):', 'CASH') ?? undefined
-                markPaid.mutate(
-                  { id: invoice.id, input: { paidAt, paymentMethod: method || undefined } },
-                  {
-                    onSuccess: () => {
-                      queryClient.invalidateQueries({ queryKey: ['invoices'] })
-                    },
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!window.confirm('Đánh dấu hóa đơn này là đã thu tiền?')) return
+                  const paidAt = new Date().toISOString()
+                  markPaid.mutate(
+                    { id: invoice.id, input: { paidAt } },
+                    {
+                      onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: ['invoices'] })
+                      },
+                    }
+                  )
+                }}
+                disabled={markPaid.isPending}
+                className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+              >
+                {markPaid.isPending ? 'Đang cập nhật…' : 'Đánh dấu đã thu'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Xóa hóa đơn chưa thanh toán này?')) {
+                    deleteInvoice.mutate(invoice.id, {
+                      onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: ['invoices'] })
+                        navigate('/invoices', { replace: true })
+                      },
+                    })
                   }
-                )
-              }}
-              disabled={markPaid.isPending}
-              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-700 dark:hover:bg-emerald-600"
-            >
-              {markPaid.isPending ? 'Đang cập nhật…' : 'Đánh dấu đã thu'}
-            </button>
+                }}
+                disabled={deleteInvoice.isPending}
+                className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                {deleteInvoice.isPending ? 'Đang xóa…' : 'Xóa hóa đơn'}
+              </button>
+            </>
           ) : (
             <button
               type="button"

@@ -1,6 +1,8 @@
 package com.management.config;
 
 import com.management.domain.entity.User;
+import com.management.domain.enums.UserRole;
+import com.management.domain.enums.UserStatus;
 import com.management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,8 @@ public class AdminUserLoader implements ApplicationRunner {
                 .username(ADMIN_USERNAME)
                 .email(ADMIN_EMAIL)
                 .password(passwordEncoder.encode(ADMIN_PASSWORD))
+                .role(UserRole.ADMIN)
+                .status(UserStatus.ACTIVE)
                 .build();
         userRepository.save(admin);
         log.info("Created default admin user (username: {}, password: {})", ADMIN_USERNAME, ADMIN_PASSWORD);

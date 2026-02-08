@@ -1,5 +1,7 @@
 package com.management.domain.entity;
 
+import com.management.domain.enums.UserRole;
+import com.management.domain.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,6 +28,16 @@ public class User {
 
     @Column(nullable = false, length = 255)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private UserRole role = UserRole.USER;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private UserStatus status = UserStatus.DRAFT;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

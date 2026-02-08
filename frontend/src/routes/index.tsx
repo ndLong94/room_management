@@ -14,6 +14,12 @@ import { RoomHistoryPage } from '@/pages/rooms/RoomHistoryPage'
 import { PricingSettingsPage } from '@/pages/settings/PricingSettingsPage'
 import { InvoiceListPage } from '@/pages/invoices/InvoiceListPage'
 import { InvoiceDetailPage } from '@/pages/invoices/InvoiceDetailPage'
+import { AdminUserListPage } from '@/pages/admin/AdminUserListPage'
+import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage'
+import { ProfilePage } from '@/pages/ProfilePage'
+import { ProfileEditPage } from '@/pages/ProfileEditPage'
+import { HomeOrRedirect } from '@/pages/HomeOrRedirect'
+import { AdminRoute } from '@/components/AdminRoute'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('access_token')
@@ -35,7 +41,7 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
+        <Route index element={<HomeOrRedirect />} />
         <Route path="properties" element={<PropertyListPage />} />
         <Route path="properties/new" element={<PropertyFormPage mode="new" />} />
         <Route path="properties/:id/edit" element={<PropertyFormPage mode="edit" />} />
@@ -51,6 +57,10 @@ export function AppRoutes() {
         <Route path="invoices" element={<InvoiceListPage />} />
         <Route path="invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="rooms" element={<AllRoomsPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="profile/edit" element={<ProfileEditPage />} />
+        <Route path="admin/users" element={<AdminRoute><AdminUserListPage /></AdminRoute>} />
+        <Route path="admin/users/:userId" element={<AdminRoute><AdminUserDetailPage /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useProperties } from '@/hooks/useProperties'
-import { useInvoices, useMarkInvoicePaid, useMarkInvoiceUnpaid } from '@/hooks/useInvoices'
+import { useInvoices, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
 import { formatAmount, formatDate, isDueDateReached } from '@/utils'
 
 const PAGE_SIZE = 10
@@ -34,6 +34,7 @@ export function InvoiceListPage() {
     parseStatus(statusParam) || 'UNPAID'
   )
   const [page, setPage] = useState(1)
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
 
   // Sync filter state from URL when searchParams change (e.g. from dashboard link)
   useEffect(() => {
@@ -92,11 +93,12 @@ export function InvoiceListPage() {
   const navigate = useNavigate()
   const markPaid = useMarkInvoicePaid()
   const markUnpaid = useMarkInvoiceUnpaid()
+  const deleteInvoice = useDeleteInvoice()
 
   const handleMarkPaid = (id: number) => {
+    if (!window.confirm('Đánh dấu hóa đơn này là đã thu tiền?')) return
     const paidAt = new Date().toISOString()
-    const method = window.prompt('Phương thức thanh toán (tùy chọn):', 'CASH') ?? undefined
-    markPaid.mutate({ id, input: { paidAt, paymentMethod: method || undefined } })
+    markPaid.mutate({ id, input: { paidAt } })
   }
 
   const handleMarkUnpaid = (id: number) => {
@@ -105,7 +107,22 @@ export function InvoiceListPage() {
     }
   }
 
-  const statusLabel = (s: string) => (s === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán')
+  const handleDelete = (id: number) => {
+    if (window.confirm('Xóa hóa đơn chưa thanh toán này?')) {
+      deleteInvoice.mutate(id)
+    }
+  }
+
+  type StatusDisplay = { label: string; className: string }
+  const getStatusDisplay = (inv: { status: string; dueDate?: string | null }): StatusDisplay => {
+    if (inv.status === 'PAID') {
+      return { label: 'Đã thanh toán', className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' }
+    }
+    if (inv.status === 'UNPAID' && inv.dueDate && !isDueDateReached(inv.dueDate)) {
+      return { label: 'Chưa tới ngày', className: 'bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-300' }
+    }
+    return { label: 'Chưa thanh toán', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' }
+  }
 
   const sortedInvoices = [...(invoices ?? [])].sort(
     (a, b) => b.year - a.year || b.month - a.month
@@ -131,66 +148,8 @@ export function InvoiceListPage() {
         </Link>
         <h1 className="text-xl font-bold sm:text-2xl">Hóa đơn</h1>
       </div>
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
-        <div className="col-span-2 sm:col-span-1">
-          <label className="mb-1 block text-xs font-medium text-slate-500">Tháng</label>
-          <select
-            value={month}
-            onChange={(e) => {
-              const v = e.target.value === '' ? '' : Number(e.target.value)
-              setMonth(v)
-              updateUrl({ month: v })
-              setPage(1)
-            }}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-          >
-            <option value="">Tất cả</option>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="col-span-2 sm:col-span-1">
-          <label className="mb-1 block text-xs font-medium text-slate-500">Năm</label>
-          <select
-            value={year === '' ? '' : year}
-            onChange={(e) => {
-              const v = e.target.value === '' ? '' : Number(e.target.value)
-              setYear(v)
-              updateUrl({ year: v })
-              setPage(1)
-            }}
-            className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 sm:w-24 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-          >
-            <option value="">Tất cả</option>
-            {YEAR_OPTIONS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-        <div className="col-span-2 min-w-0 sm:min-w-[180px]">
-          <label className="mb-1 block text-xs font-medium text-slate-500">Bất động sản</label>
-          <select
-            value={propertyId}
-            onChange={(e) => {
-              const v = e.target.value === '' ? '' : Number(e.target.value)
-              setPropertyId(v)
-              updateUrl({ propertyId: v })
-              setPage(1)
-            }}
-            className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-          >
-            <option value="">Tất cả</option>
-            {properties?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="col-span-2 sm:col-span-1">
+      <div className="mb-4 flex flex-wrap items-end gap-3 sm:gap-4">
+        <div className="min-w-0 sm:w-36">
           <label className="mb-1 block text-xs font-medium text-slate-500">Trạng thái</label>
           <select
             value={status}
@@ -207,6 +166,75 @@ export function InvoiceListPage() {
             <option value="PAID">Đã thanh toán</option>
           </select>
         </div>
+        <button
+          type="button"
+          onClick={() => setFiltersExpanded((e) => !e)}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
+        >
+          {filtersExpanded ? 'Ẩn bộ lọc' : 'Thêm bộ lọc'}
+        </button>
+        {filtersExpanded && (
+          <div className="flex w-full flex-wrap items-end gap-3 sm:flex-row sm:gap-4">
+            <div className="min-w-0 sm:w-24">
+              <label className="mb-1 block text-xs font-medium text-slate-500">Tháng</label>
+              <select
+                value={month}
+                onChange={(e) => {
+                  const v = e.target.value === '' ? '' : Number(e.target.value)
+                  setMonth(v)
+                  updateUrl({ month: v })
+                  setPage(1)
+                }}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+              >
+                <option value="">Tất cả</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0 sm:w-24">
+              <label className="mb-1 block text-xs font-medium text-slate-500">Năm</label>
+              <select
+                value={year === '' ? '' : year}
+                onChange={(e) => {
+                  const v = e.target.value === '' ? '' : Number(e.target.value)
+                  setYear(v)
+                  updateUrl({ year: v })
+                  setPage(1)
+                }}
+                className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+              >
+                <option value="">Tất cả</option>
+                {YEAR_OPTIONS.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0 sm:min-w-[180px]">
+              <label className="mb-1 block text-xs font-medium text-slate-500">Bất động sản</label>
+              <select
+                value={propertyId}
+                onChange={(e) => {
+                  const v = e.target.value === '' ? '' : Number(e.target.value)
+                  setPropertyId(v)
+                  updateUrl({ propertyId: v })
+                  setPage(1)
+                }}
+                className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+              >
+                <option value="">Tất cả</option>
+                {properties?.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
       {isLoading && <p className="text-slate-500">Đang tải…</p>}
       {error && <p className="text-red-600">Không tải được danh sách hóa đơn.</p>}
@@ -243,36 +271,39 @@ export function InvoiceListPage() {
                       </p>
                       <p className="text-sm text-slate-600 dark:text-slate-300">
                         {inv.dueDate ? formatDate(inv.dueDate) : `Tháng ${inv.month}/${inv.year}`}
-                        {inv.status === 'UNPAID' && inv.dueDate && !isDueDateReached(inv.dueDate) && (
-                          <span className="ml-1 text-amber-600 dark:text-amber-400">(chưa tới ngày)</span>
-                        )}
                       </p>
                     </div>
                     <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                        inv.status === 'PAID'
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                      }`}
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${getStatusDisplay(inv).className}`}
                     >
-                      {statusLabel(inv.status)}
+                      {getStatusDisplay(inv).label}
                     </span>
                   </div>
                   <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
                     {formatAmount(inv.totalAmount)}
                   </p>
                   <div
-                    className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700"
+                    className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {inv.status === 'UNPAID' ? (
-                      <button
-                        type="button"
-                        onClick={() => handleMarkPaid(inv.id)}
-                        className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                      >
-                        Đánh dấu đã thu
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleMarkPaid(inv.id)}
+                          className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                        >
+                          Đánh dấu đã thu
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(inv.id)}
+                          disabled={deleteInvoice.isPending}
+                          className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          Xóa
+                        </button>
+                      </>
                     ) : (
                       <button
                         type="button"
@@ -352,9 +383,6 @@ export function InvoiceListPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                         {inv.dueDate ? formatDate(inv.dueDate) : `${inv.month}/${inv.year}`}
-                        {inv.status === 'UNPAID' && inv.dueDate && !isDueDateReached(inv.dueDate) && (
-                          <span className="ml-1 text-amber-600 dark:text-amber-400">(chưa tới ngày)</span>
-                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">
                         {formatAmount(inv.rentAmount)}
@@ -370,24 +398,30 @@ export function InvoiceListPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            inv.status === 'PAID'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                          }`}
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getStatusDisplay(inv).className}`}
                         >
-                          {statusLabel(inv.status)}
+                          {getStatusDisplay(inv).label}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         {inv.status === 'UNPAID' ? (
-                          <button
-                            type="button"
-                            onClick={() => handleMarkPaid(inv.id)}
-                            className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                          >
-                            Đánh dấu đã thu
-                          </button>
+                          <span className="flex flex-wrap justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleMarkPaid(inv.id)}
+                              className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                            >
+                              Đánh dấu đã thu
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(inv.id)}
+                              disabled={deleteInvoice.isPending}
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              Xóa
+                            </button>
+                          </span>
                         ) : (
                           <button
                             type="button"

@@ -15,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 public class MeterReadingService {
@@ -39,6 +41,21 @@ public class MeterReadingService {
                 .orElseThrow(() -> new RoomNotFoundException("Room not found: " + roomId));
         if (room.getStatus() != RoomStatus.OCCUPIED) {
             throw new IllegalStateException("Chỉ được cập nhật chỉ số điện nước khi phòng đang cho thuê.");
+        }
+        int prevMonth = request.getMonth() == 1 ? 12 : request.getMonth() - 1;
+        int prevYear = request.getMonth() == 1 ? request.getYear() - 1 : request.getYear();
+        BigDecimal prevElec = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
+                .map(MeterReading::getElecReading)
+                .orElse(BigDecimal.ZERO);
+        BigDecimal prevWater = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
+                .map(MeterReading::getWaterReading)
+                .orElse(BigDecimal.ZERO);
+        BigDecimal initialElec = room.getInitialElecReading() != null ? room.getInitialElecReading() : BigDecimal.ZERO;
+        BigDecimal initialWater = room.getInitialWaterReading() != null ? room.getInitialWaterReading() : BigDecimal.ZERO;
+        BigDecimal minElec = prevElec.max(initialElec);
+        BigDecimal minWater = prevWater.max(initialWater);
+        if (request.getElecReading().compareTo(minElec) < 0 || request.getWaterReading().compareTo(minWater) < 0) {
+            throw new IllegalArgumentException("Chỉ số điện nước không được nhỏ hơn chỉ số lúc chuyển trạng thái hoặc chỉ số tháng trước.");
         }
         MeterReading reading = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, request.getMonth(), request.getYear())
                 .orElse(MeterReading.builder()

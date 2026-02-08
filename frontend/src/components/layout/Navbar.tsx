@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 
 type NavbarProps = {
   onMenuClick: () => void
@@ -6,9 +7,11 @@ type NavbarProps = {
 
 export function Navbar({ onMenuClick }: NavbarProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const handleLogout = () => {
     localStorage.removeItem('access_token')
+    queryClient.removeQueries({ queryKey: ['me'] })
     navigate('/login', { replace: true })
   }
 

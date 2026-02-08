@@ -41,6 +41,22 @@ public class Room {
     @Column(name = "payment_day")
     private Integer paymentDay;
 
+    /** Giá điện cố định (đ/tháng). Nếu set thì hóa đơn dùng số này thay vì tính từ đồng hồ. */
+    @Column(name = "fixed_elec_amount", precision = 12, scale = 2)
+    private BigDecimal fixedElecAmount;
+
+    /** Giá nước cố định (đ/tháng). Nếu set thì hóa đơn dùng số này thay vì tính từ đồng hồ. */
+    @Column(name = "fixed_water_amount", precision = 12, scale = 2)
+    private BigDecimal fixedWaterAmount;
+
+    /** Chỉ số điện khởi điểm (khi bắt đầu cho thuê). Tháng đầu dùng làm chỉ số “tháng trước” để tính tiêu thụ. */
+    @Column(name = "initial_elec_reading", precision = 12, scale = 2)
+    private BigDecimal initialElecReading;
+
+    /** Chỉ số nước khởi điểm (khi bắt đầu cho thuê). Tháng đầu dùng làm chỉ số “tháng trước” để tính tiêu thụ. */
+    @Column(name = "initial_water_reading", precision = 12, scale = 2)
+    private BigDecimal initialWaterReading;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

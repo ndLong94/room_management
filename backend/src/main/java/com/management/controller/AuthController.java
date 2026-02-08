@@ -1,7 +1,10 @@
 package com.management.controller;
 
+import com.management.dto.request.FacebookLoginRequest;
+import com.management.dto.request.GoogleLoginRequest;
 import com.management.dto.request.LoginRequest;
 import com.management.dto.request.RegisterRequest;
+import com.management.dto.request.UpdateProfileRequest;
 import com.management.dto.response.AuthResponse;
 import com.management.dto.response.UserResponse;
 import com.management.service.AuthService;
@@ -34,9 +37,27 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @PostMapping("/google")
+    @Operation(summary = "Login or register with Google (send ID token credential)")
+    public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.loginWithGoogle(request));
+    }
+
+    @PostMapping("/facebook")
+    @Operation(summary = "Login or register with Facebook (send access token)")
+    public ResponseEntity<AuthResponse> loginWithFacebook(@Valid @RequestBody FacebookLoginRequest request) {
+        return ResponseEntity.ok(authService.loginWithFacebook(request));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Get current user (requires Bearer token)")
     public ResponseEntity<UserResponse> me() {
         return ResponseEntity.ok(authService.me());
+    }
+
+    @PutMapping("/me")
+    @Operation(summary = "Update profile (email only; username cannot be changed)")
+    public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        return ResponseEntity.ok(authService.updateProfile(request));
     }
 }

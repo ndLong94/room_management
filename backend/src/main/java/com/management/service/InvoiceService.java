@@ -58,25 +58,37 @@ public class InvoiceService {
         }
         Property property = propertyRepository.findByIdAndOwnerUserId(room.getPropertyId(), ownerUserId)
                 .orElseThrow(() -> new PropertyNotFoundException("Property not found: " + room.getPropertyId()));
-        MeterReading currentReading = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, month, year)
-                .orElseThrow(() -> new IllegalStateException("Meter reading for " + month + "/" + year + " not found. Add meter reading first."));
-
-        int prevMonth = month == 1 ? 12 : month - 1;
-        int prevYear = month == 1 ? year - 1 : year;
-        BigDecimal elecOld = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
-                .map(MeterReading::getElecReading)
-                .orElse(BigDecimal.ZERO);
-        BigDecimal waterOld = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
-                .map(MeterReading::getWaterReading)
-                .orElse(BigDecimal.ZERO);
 
         BigDecimal rentAmount = room.getRentPrice() != null ? room.getRentPrice() : BigDecimal.ZERO;
-        BigDecimal elecPrice = property.getElecPrice() != null ? property.getElecPrice() : BigDecimal.ZERO;
-        BigDecimal waterPrice = property.getWaterPrice() != null ? property.getWaterPrice() : BigDecimal.ZERO;
-        BigDecimal elecDelta = currentReading.getElecReading().subtract(elecOld).max(BigDecimal.ZERO);
-        BigDecimal waterDelta = currentReading.getWaterReading().subtract(waterOld).max(BigDecimal.ZERO);
-        BigDecimal elecAmount = elecDelta.multiply(elecPrice).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal waterAmount = waterDelta.multiply(waterPrice).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal elecAmount;
+        BigDecimal waterAmount;
+        boolean useFixedUtility = room.getFixedElecAmount() != null && room.getFixedWaterAmount() != null;
+        if (useFixedUtility) {
+            elecAmount = room.getFixedElecAmount().setScale(2, RoundingMode.HALF_UP);
+            waterAmount = room.getFixedWaterAmount().setScale(2, RoundingMode.HALF_UP);
+        } else {
+            MeterReading currentReading = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, month, year)
+                    .orElseThrow(() -> new IllegalStateException("Chỉ số điện nước tháng " + month + "/" + year + " chưa có. Vui lòng nhập chỉ số đồng hồ trước."));
+            BigDecimal initialElec = room.getInitialElecReading() != null ? room.getInitialElecReading() : BigDecimal.ZERO;
+            BigDecimal initialWater = room.getInitialWaterReading() != null ? room.getInitialWaterReading() : BigDecimal.ZERO;
+            if (currentReading.getElecReading().compareTo(initialElec) < 0 || currentReading.getWaterReading().compareTo(initialWater) < 0) {
+                throw new IllegalArgumentException("Chỉ số điện nước không được nhỏ hơn chỉ số lúc chuyển trạng thái.");
+            }
+            int prevMonth = month == 1 ? 12 : month - 1;
+            int prevYear = month == 1 ? year - 1 : year;
+            BigDecimal elecOld = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
+                    .map(MeterReading::getElecReading)
+                    .orElse(room.getInitialElecReading() != null ? room.getInitialElecReading() : BigDecimal.ZERO);
+            BigDecimal waterOld = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
+                    .map(MeterReading::getWaterReading)
+                    .orElse(room.getInitialWaterReading() != null ? room.getInitialWaterReading() : BigDecimal.ZERO);
+            BigDecimal elecPrice = property.getElecPrice() != null ? property.getElecPrice() : BigDecimal.ZERO;
+            BigDecimal waterPrice = property.getWaterPrice() != null ? property.getWaterPrice() : BigDecimal.ZERO;
+            BigDecimal elecDelta = currentReading.getElecReading().subtract(elecOld).max(BigDecimal.ZERO);
+            BigDecimal waterDelta = currentReading.getWaterReading().subtract(waterOld).max(BigDecimal.ZERO);
+            elecAmount = elecDelta.multiply(elecPrice).setScale(2, RoundingMode.HALF_UP);
+            waterAmount = waterDelta.multiply(waterPrice).setScale(2, RoundingMode.HALF_UP);
+        }
         BigDecimal otherAmount = BigDecimal.ZERO;
         BigDecimal totalAmount = rentAmount.add(elecAmount).add(waterAmount).add(otherAmount).setScale(2, RoundingMode.HALF_UP);
 
@@ -141,6 +153,18 @@ public class InvoiceService {
         invoice.setPaymentMethod(null);
         invoice = invoiceRepository.save(invoice);
         return toResponse(invoice);
+    }
+
+    /** Xóa hóa đơn chỉ khi chưa thanh toán (UNPAID). */
+    @Transactional
+    public void delete(Long id) {
+        long userId = currentUserId();
+        Invoice invoice = invoiceRepository.findByIdAndOwnerUserId(id, userId)
+                .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + id));
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            throw new InvoiceAlreadyPaidException("Chỉ được xóa hóa đơn chưa thanh toán.");
+        }
+        invoiceRepository.delete(invoice);
     }
 
     private void ensureRoomOwnedByUser(Long roomId, long userId) {

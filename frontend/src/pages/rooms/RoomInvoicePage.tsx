@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useProperty } from '@/hooks/useProperties'
 import { useRooms } from '@/hooks/useRooms'
-import { useInvoices, useGenerateInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid } from '@/hooks/useInvoices'
+import { useInvoices, useGenerateInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
 import { createMeterReading, getMeterReading } from '@/api/meterReadings'
 import { formatAmount, formatDate, isDueDateReached } from '@/utils'
 
@@ -47,6 +47,10 @@ export function RoomInvoicePage() {
   const meterSaveDisabled = meterFormLocked || meterFutureLocked || roomNotOccupied
   const canCreateInvoice = !roomNotOccupied
 
+  const fixedElec = room?.fixedElecAmount != null ? Number(room.fixedElecAmount) : null
+  const fixedWater = room?.fixedWaterAmount != null ? Number(room.fixedWaterAmount) : null
+  const useFixedUtility = fixedElec != null && fixedWater != null && !Number.isNaN(fixedElec) && !Number.isNaN(fixedWater)
+
   const prev = prevMonthYear(meterMonth, meterYear)
   const { data: prevReading } = useQuery({
     queryKey: ['meter-reading', propId, rId, prev.month, prev.year],
@@ -70,44 +74,16 @@ export function RoomInvoicePage() {
   const generateInvoice = useGenerateInvoice()
   const markPaid = useMarkInvoicePaid()
   const markUnpaid = useMarkInvoiceUnpaid()
+  const deleteInvoice = useDeleteInvoice()
 
-  const handleSaveMeter = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (propId == null || rId == null) return
-    if (meterFormLocked) {
-      toast.error('Tháng này đã thanh toán, không thể sửa chỉ số điện nước.')
-      return
-    }
-    if (meterFutureLocked) {
-      toast.error('Không thể lưu chỉ số cho tháng tương lai.')
-      return
-    }
-    const elec = elecReading.trim()
-    const water = waterReading.trim()
-    if (!elec || !water) {
-      window.alert(
-        'Vui lòng nhập đầy đủ chỉ số điện và chỉ số nước trước khi lưu. Nếu chưa có số liệu, hãy nhập chỉ số hiện tại (có thể tạm 0) rồi bấm Lưu chỉ số.'
-      )
-      return
-    }
-    try {
-      await createMeterReading(propId, rId, {
-        month: meterMonth,
-        year: meterYear,
-        elecReading: parseFloat(elecReading) || 0,
-        waterReading: parseFloat(waterReading) || 0,
-      })
-      queryClient.invalidateQueries({ queryKey: ['meter-reading'] })
-      toast.success('Đã lưu chỉ số điện nước')
-      setElecReading('')
-      setWaterReading('')
-    } catch {
-      toast.error('Không lưu được chỉ số điện nước')
-    }
-  }
-
-  const prevElec = prevReading?.elecReading ?? 0
-  const prevWater = prevReading?.waterReading ?? 0
+  const initialElec = room?.initialElecReading != null ? Number(room.initialElecReading) : 0
+  const initialWater = room?.initialWaterReading != null ? Number(room.initialWaterReading) : 0
+  const prevElecVal = prevReading?.elecReading
+  const prevWaterVal = prevReading?.waterReading
+  const prevElec = (prevElecVal != null && prevElecVal !== '') ? Number(prevElecVal) : initialElec
+  const prevWater = (prevWaterVal != null && prevWaterVal !== '') ? Number(prevWaterVal) : initialWater
+  const minElec = Math.max(prevElec, initialElec)
+  const minWater = Math.max(prevWater, initialWater)
   const currElec = parseFloat(elecReading) || 0
   const currWater = parseFloat(waterReading) || 0
   const usageElec = Math.max(0, currElec - prevElec)
@@ -119,6 +95,20 @@ export function RoomInvoicePage() {
 
   const handleGenerate = async () => {
     if (propId == null || rId == null) return
+    if (useFixedUtility) {
+      generateInvoice.mutate(
+        { propertyId: propId, roomId: rId, month: meterMonth, year: meterYear },
+        {
+          onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }),
+          onError: (err: { response?: { status?: number; data?: { message?: string } } }) => {
+            if (err?.response?.status === 409) {
+              window.alert(err?.response?.data?.message ?? 'Hóa đơn đã thanh toán, không thể chỉnh sửa.')
+            }
+          },
+        }
+      )
+      return
+    }
     const hasSavedMeter = currentReading != null
     const hasFormMeter = elecReading.trim() !== '' && waterReading.trim() !== ''
     if (!hasSavedMeter && !hasFormMeter) {
@@ -127,17 +117,24 @@ export function RoomInvoicePage() {
       )
       return
     }
+    const formCurrElec = parseFloat(elecReading) || 0
+    const formCurrWater = parseFloat(waterReading) || 0
+    if (formCurrElec < minElec || formCurrWater < minWater) {
+      window.alert('Chỉ số điện nước nhỏ hơn chỉ số lúc chuyển trạng thái hoặc chỉ số tháng trước. Vui lòng kiểm tra lại.')
+      return
+    }
     if (!hasSavedMeter && hasFormMeter) {
       try {
         await createMeterReading(propId, rId, {
           month: meterMonth,
           year: meterYear,
-          elecReading: parseFloat(elecReading) || 0,
-          waterReading: parseFloat(waterReading) || 0,
+          elecReading: formCurrElec,
+          waterReading: formCurrWater,
         })
         queryClient.invalidateQueries({ queryKey: ['meter-reading'] })
-      } catch {
-        toast.error('Không lưu được chỉ số điện nước. Thử bấm "Lưu chỉ số" trước.')
+      } catch (err: unknown) {
+        const msg = err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data ? String((err.response.data as { message: unknown }).message) : null
+        toast.error(msg ?? 'Không lưu được chỉ số điện nước.')
         return
       }
     }
@@ -149,8 +146,7 @@ export function RoomInvoicePage() {
         },
         onError: (err: { response?: { status?: number; data?: { message?: string } } }) => {
           if (err?.response?.status === 409) {
-            const msg = err?.response?.data?.message ?? 'Hóa đơn đã thanh toán, không thể chỉnh sửa.'
-            window.alert(msg)
+            window.alert(err?.response?.data?.message ?? 'Hóa đơn đã thanh toán, không thể chỉnh sửa.')
           }
         },
       }
@@ -188,12 +184,27 @@ export function RoomInvoicePage() {
         </div>
       )}
 
+      {useFixedUtility && (
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/50">
+          <p className="font-medium text-slate-700 dark:text-slate-200">Phòng dùng giá điện nước cố định</p>
+          <p className="mt-1 text-slate-600 dark:text-slate-300">
+            Điện: <strong>{formatAmount(fixedElec!)}</strong>/tháng — Nước: <strong>{formatAmount(fixedWater!)}</strong>/tháng. Các khoản này được cộng vào hóa đơn.
+          </p>
+        </div>
+      )}
+
       <div className="mb-6 max-w-md space-y-4 rounded-lg border border-slate-200 p-4 sm:mb-8 dark:border-slate-700">
-        <h2 className="font-semibold">Chỉ số điện nước</h2>
-        <p className="text-sm text-slate-500">
-          Chọn tháng/năm cần nhập, xem chỉ số tháng trước rồi nhập chỉ số hiện tại. Hệ thống tự tính tiêu thụ và dự tính tiền.
-        </p>
-        <form onSubmit={handleSaveMeter} className="space-y-4">
+        <h2 className="font-semibold">{useFixedUtility ? 'Tháng hóa đơn' : 'Chỉ số điện nước'}</h2>
+        {useFixedUtility ? (
+          <p className="text-sm text-slate-500">
+            Phòng này dùng giá cố định, không cần nhập chỉ số đồng hồ. Chọn tháng/năm rồi bấm Tạo hóa đơn.
+          </p>
+        ) : (
+          <p className="text-sm text-slate-500">
+            Chọn tháng/năm cần nhập, xem chỉ số tháng trước rồi nhập chỉ số hiện tại. Hệ thống tự tính tiêu thụ và dự tính tiền.
+          </p>
+        )}
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
             <div className="min-w-0 flex-1">
               <label className="mb-1 block text-xs font-medium text-slate-500">Tháng</label>
@@ -231,12 +242,21 @@ export function RoomInvoicePage() {
             </div>
           </div>
 
+          {!useFixedUtility && (
+            <>
           <div className="min-w-0 rounded-lg bg-slate-50 p-3 dark:bg-slate-700/50">
-            <p className="mb-1 text-xs font-medium text-slate-500">Chỉ số tháng trước (Tháng {prev.month}/{prev.year})</p>
+            <p className="mb-1 text-xs font-medium text-slate-500">
+              {prevReading ? `Chỉ số tháng trước (Tháng ${prev.month}/${prev.year})` : 'Chỉ số khởi điểm / tháng trước'}
+            </p>
             {prevReading ? (
               <p className="break-words text-sm text-slate-700 dark:text-slate-300">
                 Điện: <strong>{Number(prevReading.elecReading).toLocaleString()}</strong> kWh — Nước:{' '}
                 <strong>{Number(prevReading.waterReading).toLocaleString()}</strong> m³
+              </p>
+            ) : initialElec > 0 || initialWater > 0 ? (
+              <p className="break-words text-sm text-slate-700 dark:text-slate-300">
+                Điện: <strong>{initialElec.toLocaleString()}</strong> kWh — Nước: <strong>{initialWater.toLocaleString()}</strong> m³
+                <span className="ml-1 text-slate-500">(chỉ số khởi điểm phòng)</span>
               </p>
             ) : (
               <p className="text-sm text-slate-500">Chưa có chỉ số tháng trước (sẽ tính từ 0).</p>
@@ -301,20 +321,17 @@ export function RoomInvoicePage() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={meterSaveDisabled}
-            className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-600 dark:hover:bg-slate-500"
-          >
-            Lưu chỉ số
-          </button>
+            </>
+          )}
         </form>
       </div>
 
       <div className="max-w-md space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700">
         <h2 className="font-semibold">Tạo hóa đơn</h2>
         <p className="text-sm text-slate-500">
-          Dùng tháng/năm đã chọn ở form phía trên (Tháng {meterMonth}/{meterYear}). Có thể nhập chỉ số rồi bấm Tạo hóa đơn — hệ thống sẽ tự lưu chỉ số nếu chưa lưu.
+          {useFixedUtility
+            ? `Dùng tháng/năm đã chọn ở form phía trên (Tháng ${meterMonth}/${meterYear}). Bấm Tạo hóa đơn để tạo — tiền điện nước cố định sẽ được cộng tự động.`
+            : `Dùng tháng/năm đã chọn ở form phía trên (Tháng ${meterMonth}/${meterYear}). Có thể nhập chỉ số rồi bấm Tạo hóa đơn — hệ thống sẽ tự lưu chỉ số nếu chưa lưu.`}
         </p>
 
         {roomInvoice && (
@@ -336,21 +353,37 @@ export function RoomInvoicePage() {
             ) : null}
             <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700">
               {roomInvoice.status === 'UNPAID' ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const paidAt = new Date().toISOString()
-                    const method = window.prompt('Phương thức thanh toán (tùy chọn):', 'CASH') ?? undefined
-                    markPaid.mutate(
-                      { id: roomInvoice.id, input: { paidAt, paymentMethod: method || undefined } },
-                      { onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }) }
-                    )
-                  }}
-                  disabled={markPaid.isPending}
-                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-700 dark:hover:bg-emerald-600"
-                >
-                  {markPaid.isPending ? 'Đang cập nhật…' : 'Đánh dấu đã thu'}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm('Đánh dấu hóa đơn này là đã thu tiền?')) return
+                      const paidAt = new Date().toISOString()
+                      markPaid.mutate(
+                        { id: roomInvoice.id, input: { paidAt } },
+                        { onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }) }
+                      )
+                    }}
+                    disabled={markPaid.isPending}
+                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+                  >
+                    {markPaid.isPending ? 'Đang cập nhật…' : 'Đánh dấu đã thu'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Xóa hóa đơn chưa thanh toán này?')) {
+                        deleteInvoice.mutate(roomInvoice.id, {
+                          onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }),
+                        })
+                      }
+                    }}
+                    disabled={deleteInvoice.isPending}
+                    className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    {deleteInvoice.isPending ? 'Đang xóa…' : 'Xóa hóa đơn'}
+                  </button>
+                </>
               ) : (
                 <button
                   type="button"

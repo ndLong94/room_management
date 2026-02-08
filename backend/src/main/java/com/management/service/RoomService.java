@@ -60,6 +60,10 @@ public class RoomService {
                 .rentPrice(request.getRentPrice() != null ? request.getRentPrice() : BigDecimal.ZERO)
                 .status(request.getStatus() != null ? request.getStatus() : RoomStatus.VACANT)
                 .paymentDay(request.getPaymentDay())
+                .fixedElecAmount(request.getFixedElecAmount())
+                .fixedWaterAmount(request.getFixedWaterAmount())
+                .initialElecReading(request.getInitialElecReading())
+                .initialWaterReading(request.getInitialWaterReading())
                 .build();
         room = roomRepository.save(room);
         return toResponse(room);
@@ -79,6 +83,10 @@ public class RoomService {
         room.setStatus(newStatus);
         room.setContractUrl(request.getContractUrl() != null ? request.getContractUrl().trim() : null);
         room.setPaymentDay(request.getPaymentDay());
+        room.setFixedElecAmount(request.getFixedElecAmount());
+        room.setFixedWaterAmount(request.getFixedWaterAmount());
+        if (request.getInitialElecReading() != null) room.setInitialElecReading(request.getInitialElecReading());
+        if (request.getInitialWaterReading() != null) room.setInitialWaterReading(request.getInitialWaterReading());
         room = roomRepository.save(room);
         return toResponse(room);
     }
@@ -149,6 +157,10 @@ public class RoomService {
                 .status(r.getStatus())
                 .contractUrl(r.getContractUrl())
                 .paymentDay(r.getPaymentDay())
+                .fixedElecAmount(r.getFixedElecAmount())
+                .fixedWaterAmount(r.getFixedWaterAmount())
+                .initialElecReading(r.getInitialElecReading())
+                .initialWaterReading(r.getInitialWaterReading())
                 .createdAt(r.getCreatedAt())
                 .build();
     }

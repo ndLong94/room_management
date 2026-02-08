@@ -27,4 +27,13 @@ public class AuthResponse {
                 .user(user)
                 .build();
     }
+
+    /** After register: no token, user must wait for admin approval */
+    public static AuthResponse registered(UserResponse user) {
+        return AuthResponse.builder()
+                .accessToken(null)
+                .tokenType("Bearer")
+                .user(user)
+                .build();
+    }
 }

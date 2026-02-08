@@ -22,5 +22,9 @@ public class RoomResponse {
     private RoomStatus status;
     private String contractUrl;
     private Integer paymentDay;
+    private BigDecimal fixedElecAmount;
+    private BigDecimal fixedWaterAmount;
+    private BigDecimal initialElecReading;
+    private BigDecimal initialWaterReading;
     private Instant createdAt;
 }

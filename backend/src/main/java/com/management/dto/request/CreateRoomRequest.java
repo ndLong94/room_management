@@ -31,4 +31,18 @@ public class CreateRoomRequest {
     private RoomStatus status = RoomStatus.VACANT;
 
     private Integer paymentDay;
+
+    @DecimalMin("0")
+    private BigDecimal fixedElecAmount;
+
+    @DecimalMin("0")
+    private BigDecimal fixedWaterAmount;
+
+    /** Chỉ số điện khởi điểm (khi tạo phòng với status Cho thuê và nhập chỉ số đồng hồ). */
+    @DecimalMin("0")
+    private BigDecimal initialElecReading;
+
+    /** Chỉ số nước khởi điểm (khi tạo phòng với status Cho thuê và nhập chỉ số đồng hồ). */
+    @DecimalMin("0")
+    private BigDecimal initialWaterReading;
 }

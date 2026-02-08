@@ -1,21 +1,29 @@
 import { NavLink } from 'react-router-dom'
+import type { User } from '@/types/user'
 
 type SidebarProps = {
   open: boolean
   onClose: () => void
+  user: User | null
 }
 
-const navItems = [
+const userNavItems = [
   { to: '/', label: 'Tổng quan' },
   { to: '/properties', label: 'Bất động sản' },
   { to: '/invoices', label: 'Hóa đơn' },
   { to: '/settings/pricing', label: 'Đơn giá' },
+  { to: '/profile', label: 'Thông tin cá nhân' },
 ]
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+const adminNavItems = [
+  { to: '/admin/users', label: 'Quản lý user' },
+  { to: '/profile', label: 'Thông tin cá nhân' },
+]
+
+export function Sidebar({ open, onClose, user }: SidebarProps) {
+  const items = user?.role === 'ADMIN' ? adminNavItems : userNavItems
   return (
     <>
-      {/* Overlay on mobile */}
       {open && (
         <button
           type="button"
@@ -32,7 +40,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         `}
       >
         <nav className="flex flex-col gap-1 p-4">
-          {navItems.map(({ to, label }) => (
+          {items.map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}

@@ -6,6 +6,7 @@ import {
   generateInvoice,
   markInvoicePaid,
   markInvoiceUnpaid,
+  deleteInvoice,
 } from '@/api/invoices'
 import type { MarkPaidInput } from '@/types/invoice'
 
@@ -83,5 +84,19 @@ export function useMarkInvoiceUnpaid() {
       toast.success('Đã đánh dấu chưa thanh toán')
     },
     onError: () => toast.error('Không thể cập nhật hóa đơn'),
+  })
+}
+
+export function useDeleteInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteInvoice(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      toast.success('Đã xóa hóa đơn')
+    },
+    onError: (err: { response?: { data?: { message?: string } } }) => {
+      toast.error(err?.response?.data?.message ?? 'Không thể xóa hóa đơn')
+    },
   })
 }

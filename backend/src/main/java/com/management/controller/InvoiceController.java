@@ -60,4 +60,11 @@ public class InvoiceController {
     public ResponseEntity<InvoiceResponse> markUnpaid(@PathVariable Long id) {
         return ResponseEntity.ok(invoiceService.markUnpaid(id));
     }
+
+    @DeleteMapping("/api/invoices/{id}")
+    @Operation(summary = "Delete invoice (only allowed when status is UNPAID)")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        invoiceService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

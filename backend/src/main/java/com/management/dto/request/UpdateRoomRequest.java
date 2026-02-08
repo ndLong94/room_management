@@ -33,4 +33,20 @@ public class UpdateRoomRequest {
     private String contractUrl;
 
     private Integer paymentDay;
+
+    /** Giá điện cố định đ/tháng (khi dùng option giá cứng). */
+    @DecimalMin("0")
+    private BigDecimal fixedElecAmount;
+
+    /** Giá nước cố định đ/tháng (khi dùng option giá cứng). */
+    @DecimalMin("0")
+    private BigDecimal fixedWaterAmount;
+
+    /** Chỉ số điện khởi điểm (chỉ set khi chuyển trạng thái sang Cho thuê và nhập chỉ số đồng hồ). */
+    @DecimalMin("0")
+    private BigDecimal initialElecReading;
+
+    /** Chỉ số nước khởi điểm (chỉ set khi chuyển trạng thái sang Cho thuê và nhập chỉ số đồng hồ). */
+    @DecimalMin("0")
+    private BigDecimal initialWaterReading;
 }
