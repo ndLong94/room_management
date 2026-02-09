@@ -7,7 +7,7 @@ import {
 } from '@/api/occupancyPeriods'
 import { useProperty } from '@/hooks/useProperties'
 import { useRoom } from '@/hooks/useRooms'
-import { formatAmount, formatDate, formatDateVietnamese } from '@/utils'
+import { formatAmount, formatDateVietnamese } from '@/utils'
 import type { OccupancyPeriod, OccupancyPeriodOccupant } from '@/types/occupancyPeriod'
 
 const DOC_BASE = import.meta.env.VITE_API_URL ?? ''

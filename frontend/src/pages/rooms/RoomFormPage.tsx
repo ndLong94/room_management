@@ -49,6 +49,7 @@ export function RoomFormPage({ mode }: Props) {
     paymentDay?: number
     depositAmount?: number
     depositDate?: string
+    depositPaid?: boolean
     contractUrl?: string
     fixedElecAmount?: number
     fixedWaterAmount?: number
