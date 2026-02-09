@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getErrorMessageVi } from '@/utils'
+import { fetchRooms } from '@/api/rooms'
 import { useDeleteProperty, useProperties } from '@/hooks/useProperties'
 
 const PAGE_SIZE = 10
@@ -24,7 +25,6 @@ export function PropertyListPage() {
     
     // Check if property has occupied rooms
     try {
-      const { fetchRooms } = await import('@/api/rooms')
       const rooms = await fetchRooms(id)
       const hasOccupied = rooms.some(r => r.status === 'OCCUPIED')
       if (hasOccupied) {

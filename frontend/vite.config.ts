@@ -4,6 +4,18 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'router': ['react-router-dom'],
+          'query': ['@tanstack/react-query'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
