@@ -13,6 +13,10 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+app:
+  upload:
+    dir: /app/uploads
+
 logging:
   level:
     root: WARN
