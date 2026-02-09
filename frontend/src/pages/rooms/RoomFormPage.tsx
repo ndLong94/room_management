@@ -146,10 +146,10 @@ export function RoomFormPage({ mode }: Props) {
       values.status === 'OCCUPIED' && (!isEdit || room?.status === 'VACANT')
     if (needOccupiedModal) {
       const defaultPaymentDay = paymentDay === '' ? new Date().getDate() : paymentDay
-      setPaymentDay(defaultPaymentDay === '' ? '' : defaultPaymentDay)
+      setPaymentDay(defaultPaymentDay)
       setPendingPayload({
         ...buildPayload(values),
-        paymentDay: defaultPaymentDay === '' ? undefined : (defaultPaymentDay as number),
+        paymentDay: defaultPaymentDay,
       })
       setShowOccupiedModal(true)
       setMeterElec('')
