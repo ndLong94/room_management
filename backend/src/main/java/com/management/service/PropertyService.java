@@ -1,12 +1,14 @@
 package com.management.service;
 
 import com.management.domain.entity.Property;
+import com.management.domain.enums.RoomStatus;
 import com.management.dto.request.CreatePropertyRequest;
 import com.management.dto.request.UpdatePropertyRequest;
 import com.management.dto.response.PropertyResponse;
 import com.management.exception.PropertyNotFoundException;
 import com.management.repository.PricingSettingRepository;
 import com.management.repository.PropertyRepository;
+import com.management.repository.RoomRepository;
 import com.management.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +28,7 @@ public class PropertyService {
 
     private final PropertyRepository propertyRepository;
     private final PricingSettingRepository pricingSettingRepository;
+    private final RoomRepository roomRepository;
 
     public List<PropertyResponse> findAllForCurrentUser() {
         Long userId = currentUserId();
@@ -83,6 +86,14 @@ public class PropertyService {
         Long userId = currentUserId();
         if (!propertyRepository.existsByIdAndOwnerUserId(id, userId)) {
             throw new PropertyNotFoundException("Property not found: " + id);
+        }
+        // Check if property has any occupied rooms
+        long occupiedCount = roomRepository.findByPropertyIdOrderByCreatedAtDesc(id)
+                .stream()
+                .filter(r -> r.getStatus() == RoomStatus.OCCUPIED)
+                .count();
+        if (occupiedCount > 0) {
+            throw new IllegalStateException("Không thể xóa bất động sản khi có phòng đang cho thuê. Vui lòng chuyển trạng thái các phòng sang 'Còn trống' trước khi xóa.");
         }
         propertyRepository.deleteById(id);
     }

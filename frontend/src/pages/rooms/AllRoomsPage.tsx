@@ -22,6 +22,7 @@ export function AllRoomsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [propertyIdFilter, setPropertyIdFilter] = useState<number | ''>('')
   const [page, setPage] = useState(1)
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -143,42 +144,56 @@ export function AllRoomsPage() {
 
       {!isLoading && (
         <>
-          <div className="mb-4 grid min-w-0 grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-2 md:flex md:flex-wrap md:items-end dark:border-slate-700 dark:bg-slate-800/50">
-            <div className="min-w-0 md:min-w-[200px] md:flex-1">
-              <label className="mb-1 block text-xs font-medium text-slate-500">Tìm kiếm</label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
-                placeholder="Tên phòng hoặc BĐS..."
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-              />
-            </div>
-            <div className="min-w-0">
-              <label className="mb-1 block text-xs font-medium text-slate-500">Bất động sản</label>
-              <select
-                value={propertyIdFilter === '' ? '' : propertyIdFilter}
-                onChange={(e) => { setPropertyIdFilter(e.target.value === '' ? '' : Number(e.target.value)); setPage(1) }}
-                className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50">
+            <div className="flex items-end gap-3">
+              <div className="min-w-0 flex-1">
+                <label className="mb-1 block text-xs font-medium text-slate-500">Trạng thái</label>
+                <select
+                  value={statusFilter === '' ? '' : statusFilter}
+                  onChange={(e) => setStatusInUrl((e.target.value === '' ? '' : e.target.value) as RoomStatus | '')}
+                  className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                >
+                  <option value="">Tất cả</option>
+                  <option value="OCCUPIED">Đã cho thuê</option>
+                  <option value="VACANT">Còn trống</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFiltersExpanded((e) => !e)}
+                className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
+                style={{ height: '42px' }}
               >
-                <option value="">Tất cả</option>
-                {properties?.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+                {filtersExpanded ? 'Thu gọn' : 'Thêm bộ lọc'}
+              </button>
             </div>
-            <div className="min-w-0">
-              <label className="mb-1 block text-xs font-medium text-slate-500">Trạng thái</label>
-              <select
-                value={statusFilter === '' ? '' : statusFilter}
-                onChange={(e) => setStatusInUrl((e.target.value === '' ? '' : e.target.value) as RoomStatus | '')}
-                className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-              >
-                <option value="">Tất cả</option>
-                <option value="OCCUPIED">Đã cho thuê</option>
-                <option value="VACANT">Còn trống</option>
-              </select>
-            </div>
+            {filtersExpanded && (
+              <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="min-w-0 md:min-w-[200px] md:flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Tìm kiếm</label>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+                    placeholder="Tên phòng hoặc BĐS..."
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Bất động sản</label>
+                  <select
+                    value={propertyIdFilter === '' ? '' : propertyIdFilter}
+                    onChange={(e) => { setPropertyIdFilter(e.target.value === '' ? '' : Number(e.target.value)); setPage(1) }}
+                    className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                  >
+                    <option value="">Tất cả</option>
+                    {properties?.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mobile: card list */}
@@ -220,30 +235,24 @@ export function AllRoomsPage() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Link
-                      to={`/properties/${r.propertyId}/rooms/${r.id}/occupants`}
-                      className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                    >
-                      Người ở
-                    </Link>
-                    <Link
                       to={`/properties/${r.propertyId}/rooms/${r.id}/invoice`}
-                      className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                     >
                       Hóa đơn
                     </Link>
                     <button
                       type="button"
                       onClick={() => navigate(`/properties/${r.propertyId}/rooms/${r.id}/edit`)}
-                      className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500"
                     >
-                      Sửa
+                      Cập nhật
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(r)}
-                      className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
                     >
-                      Xóa
+                      Xóa phòng
                     </button>
                   </div>
                 </div>
@@ -320,7 +329,7 @@ export function AllRoomsPage() {
                           </Link>
                           <Link
                             to={`/properties/${r.propertyId}/rooms/${r.id}/invoice`}
-                            className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                           >
                             Hóa đơn
                           </Link>
@@ -329,14 +338,14 @@ export function AllRoomsPage() {
                             onClick={() => navigate(`/properties/${r.propertyId}/rooms/${r.id}/edit`)}
                             className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                           >
-                            Sửa
+                            Cập nhật
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(r)}
                             className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                           >
-                            Xóa
+                            Xóa phòng
                           </button>
                         </div>
                       </td>
@@ -372,6 +381,14 @@ export function AllRoomsPage() {
           )}
         </>
       )}
+      <div className="mt-6">
+        <Link
+          to="/"
+          className="inline-block rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+        >
+          Quay lại
+        </Link>
+      </div>
     </div>
   )
 }

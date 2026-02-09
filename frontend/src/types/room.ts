@@ -10,6 +10,7 @@ export interface Room {
   paymentDay?: number | null
   depositAmount?: number | string | null
   depositDate?: string | null
+  depositPaid?: boolean | null
   fixedElecAmount?: number | string | null
   fixedWaterAmount?: number | string | null
   /** Chỉ số điện/nước khởi điểm (nhập lúc chuyển Trống → Cho thuê). Tháng đầu tính tiền = chỉ số hiện tại − chỉ số này; từ tháng 2 lấy theo tháng trước. */
@@ -26,6 +27,7 @@ export interface CreateRoomInput {
   paymentDay?: number | null
   depositAmount?: number | null
   depositDate?: string | null
+  depositPaid?: boolean | null
   fixedElecAmount?: number | null
   fixedWaterAmount?: number | null
   /** Chỉ số khởi điểm khi tạo phòng Cho thuê và nhập chỉ số đồng hồ. */
@@ -41,6 +43,7 @@ export interface UpdateRoomInput {
   paymentDay?: number | null
   depositAmount?: number | null
   depositDate?: string | null
+  depositPaid?: boolean | null
   fixedElecAmount?: number | null
   fixedWaterAmount?: number | null
   /** Chỉ số khởi điểm khi chuyển sang Cho thuê và nhập chỉ số đồng hồ. */

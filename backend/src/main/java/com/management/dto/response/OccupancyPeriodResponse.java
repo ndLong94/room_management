@@ -26,5 +26,7 @@ public class OccupancyPeriodResponse {
     private LocalDate depositDate;
     private Integer paymentDay;
     private String contractUrl;
+    private BigDecimal finalElecReading;
+    private BigDecimal finalWaterReading;
     private Instant createdAt;
 }

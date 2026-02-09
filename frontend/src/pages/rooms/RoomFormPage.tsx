@@ -57,6 +57,7 @@ export function RoomFormPage({ mode }: Props) {
   } | null>(null)
   const [depositAmount, setDepositAmount] = useState<number | ''>('')
   const [depositDate, setDepositDate] = useState(() => todayDateString())
+  const [depositPaid, setDepositPaid] = useState(false)
   const [meterElec, setMeterElec] = useState('')
   const [meterWater, setMeterWater] = useState('')
   const [fixedElec, setFixedElec] = useState('')
@@ -86,6 +87,7 @@ export function RoomFormPage({ mode }: Props) {
       setPaymentDay(room.paymentDay ?? '')
       setDepositAmount(room.depositAmount != null ? Number(room.depositAmount) : '')
       setDepositDate(room.depositDate ?? todayDateString())
+      setDepositPaid(room.depositPaid ?? false)
     }
   }, [isEdit, room, reset])
 
@@ -117,14 +119,16 @@ export function RoomFormPage({ mode }: Props) {
     if (!room) return <p className="text-red-600">Không tìm thấy phòng.</p>
   }
 
-  const buildPayload = (values: FormValues, overrides?: { fixedElecAmount?: number; fixedWaterAmount?: number }) => ({
+  const buildPayload = (values: FormValues, overrides?: { fixedElecAmount?: number; fixedWaterAmount?: number; depositAmount?: number; depositDate?: string; depositPaid?: boolean }) => ({
     name: values.name.trim(),
     rentPrice: values.rentPrice,
     status: values.status as RoomStatus,
     ...(isEdit && { contractUrl: contractUrl ?? undefined }),
     paymentDay: paymentDay === '' ? undefined : paymentDay,
-    depositAmount: depositAmount === '' ? undefined : depositAmount,
-    depositDate: depositDate.trim() || undefined,
+    depositAmount: overrides?.depositAmount !== undefined ? overrides.depositAmount : (depositAmount === '' ? undefined : depositAmount),
+    depositDate: overrides?.depositDate !== undefined ? overrides.depositDate : (depositDate.trim() || undefined),
+    // Khi edit, luôn gửi depositPaid (kể cả false) để backend có thể update
+    depositPaid: overrides?.depositPaid !== undefined ? overrides.depositPaid : (isEdit ? depositPaid : undefined),
     ...overrides,
   })
 
@@ -150,6 +154,10 @@ export function RoomFormPage({ mode }: Props) {
       setPendingPayload({
         ...buildPayload(values),
         paymentDay: defaultPaymentDay,
+        // Khi chuyển sang OCCUPIED, nếu không có depositAmount thì depositPaid = false
+        depositAmount: depositAmount === '' ? undefined : depositAmount,
+        depositDate: depositDate.trim() || undefined,
+        depositPaid: depositAmount === '' ? false : depositPaid,
       })
       setShowOccupiedModal(true)
       setMeterElec('')
@@ -356,6 +364,20 @@ export function RoomFormPage({ mode }: Props) {
           />
         </div>
         {isEdit && (
+          <div className="flex items-center gap-2">
+            <input
+              id="depositPaid"
+              type="checkbox"
+              checked={depositPaid}
+              onChange={(e) => setDepositPaid(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-slate-600 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-700"
+            />
+            <label htmlFor="depositPaid" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Đã cọc
+            </label>
+          </div>
+        )}
+        {isEdit && (
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               Hợp đồng nhà
@@ -393,15 +415,15 @@ export function RoomFormPage({ mode }: Props) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-lg bg-slate-800 px-4 py-2 font-medium text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-600 dark:hover:bg-slate-500"
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
           >
             {isSubmitting ? 'Đang lưu…' : isEdit ? 'Cập nhật' : 'Tạo'}
           </button>
           <Link
             to={`/properties/${propId}/rooms`}
-            className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+            className="rounded-lg bg-slate-200 px-4 py-2 font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
           >
-            Hủy
+            Quay lại
           </Link>
         </div>
       </form>

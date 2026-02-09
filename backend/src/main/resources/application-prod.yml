@@ -17,3 +17,5 @@ logging:
   level:
     root: WARN
     com.management: INFO
+    org.hibernate.SQL: OFF
+    org.hibernate.type.descriptor.sql.BasicBinder: OFF

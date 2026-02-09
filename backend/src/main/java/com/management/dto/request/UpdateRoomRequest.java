@@ -40,6 +40,8 @@ public class UpdateRoomRequest {
 
     private LocalDate depositDate;
 
+    private Boolean depositPaid;
+
     /** Giá điện cố định đ/tháng (khi dùng option giá cứng). */
     @DecimalMin("0")
     private BigDecimal fixedElecAmount;

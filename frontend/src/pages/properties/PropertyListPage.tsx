@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useDeleteProperty, useProperties } from '@/hooks/useProperties'
+import { useRooms } from '@/hooks/useRooms'
 
 const PAGE_SIZE = 10
 
@@ -17,12 +19,28 @@ export function PropertyListPage() {
     if (page > totalPages && totalPages >= 1) setPage(totalPages)
   }, [totalPages, page])
 
-  const handleDelete = (id: number, name: string) => {
-    if (window.confirm(`Xóa "${name}"?`)) {
-      deleteProperty.mutate(id, {
-        onSuccess: () => {},
-      })
+  const handleDelete = async (id: number, name: string) => {
+    if (!window.confirm(`Xóa "${name}"?`)) return
+    
+    // Check if property has occupied rooms
+    try {
+      const { fetchRooms } = await import('@/api/rooms')
+      const rooms = await fetchRooms(id)
+      const hasOccupied = rooms.some(r => r.status === 'OCCUPIED')
+      if (hasOccupied) {
+        toast.error('Không thể xóa bất động sản khi có phòng đang cho thuê. Vui lòng chuyển trạng thái các phòng sang "Còn trống" trước khi xóa.')
+        return
+      }
+    } catch (err) {
+      // If error fetching rooms, still try to delete (backend will validate)
     }
+    
+    deleteProperty.mutate(id, {
+      onError: (err: any) => {
+        const message = err?.response?.data?.message || 'Không thể xóa bất động sản này.'
+        toast.error(message)
+      },
+    })
   }
 
   if (isLoading) return <p className="text-slate-500">Đang tải…</p>
@@ -34,7 +52,7 @@ export function PropertyListPage() {
         <h1 className="min-w-0 break-words text-xl font-bold sm:text-2xl">Bất động sản</h1>
         <Link
           to="/properties/new"
-          className="shrink-0 rounded-lg bg-slate-800 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-600 dark:hover:bg-slate-500"
+          className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
         >
           Thêm bất động sản
         </Link>
@@ -69,25 +87,19 @@ export function PropertyListPage() {
                 className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Link
-                  to={`/properties/${p.id}/rooms`}
-                  className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                >
-                  Phòng
-                </Link>
                 <button
                   type="button"
                   onClick={() => navigate(`/properties/${p.id}/edit`)}
-                  className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500"
                 >
-                  Sửa
+                  Cập nhật
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(p.id, p.name)}
-                  className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
                 >
-                  Xóa
+                  Xóa bất động sản
                 </button>
               </div>
             </div>
@@ -143,25 +155,19 @@ export function PropertyListPage() {
                     </span>
                   </td>
                   <td className="shrink-0 px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <Link
-                      to={`/properties/${p.id}/rooms`}
-                      className="mr-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                    >
-                      Phòng
-                    </Link>
                     <button
                       type="button"
                       onClick={() => navigate(`/properties/${p.id}/edit`)}
-                      className="mr-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      className="mr-2 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500"
                     >
-                      Sửa
+                      Cập nhật
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(p.id, p.name)}
-                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
                     >
-                      Xóa
+                      Xóa bất động sản
                     </button>
                   </td>
                 </tr>

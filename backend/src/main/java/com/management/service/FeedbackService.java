@@ -6,7 +6,6 @@ import com.management.domain.entity.Feedback;
 import com.management.domain.entity.User;
 import com.management.domain.enums.FeedbackStatus;
 import com.management.dto.request.CreateFeedbackRequest;
-import com.management.dto.request.FeedbackReplyRequest;
 import com.management.dto.request.UpdateFeedbackRequest;
 import com.management.dto.response.AdminFeedbackListItemResponse;
 import com.management.dto.response.FeedbackConversationMessage;
@@ -133,8 +132,9 @@ public class FeedbackService {
     }
 
     private void appendConversationMessage(Feedback feedback, String role, Long userId, String content) {
-        List<FeedbackConversationMessage> list = parseConversation(feedback.getConversation());
-        if (list == null) list = new ArrayList<>();
+        List<FeedbackConversationMessage> parsed = parseConversation(feedback.getConversation());
+        // Luôn tạo ArrayList mới để tránh UnsupportedOperationException với immutable lists
+        List<FeedbackConversationMessage> list = new ArrayList<>(parsed != null ? parsed : List.of());
         list.add(FeedbackConversationMessage.builder()
                 .role(role)
                 .userId(userId)

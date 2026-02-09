@@ -10,6 +10,7 @@ import com.management.dto.request.UpdateRoomRequest;
 import com.management.dto.response.RoomResponse;
 import com.management.exception.PropertyNotFoundException;
 import com.management.exception.RoomNotFoundException;
+import com.management.repository.MeterReadingRepository;
 import com.management.repository.OccupancyPeriodOccupantRepository;
 import com.management.repository.OccupancyPeriodRepository;
 import com.management.repository.OccupantRepository;
@@ -20,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.util.Optional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RoomService {
 
+    private final MeterReadingRepository meterReadingRepository;
     private final RoomRepository roomRepository;
     private final PropertyRepository propertyRepository;
     private final OccupantRepository occupantRepository;
@@ -62,6 +64,7 @@ public class RoomService {
                 .paymentDay(request.getPaymentDay())
                 .depositAmount(request.getDepositAmount())
                 .depositDate(request.getDepositDate())
+                .depositPaid(request.getDepositPaid() != null ? request.getDepositPaid() : false)
                 .fixedElecAmount(request.getFixedElecAmount())
                 .fixedWaterAmount(request.getFixedWaterAmount())
                 .initialElecReading(request.getInitialElecReading())
@@ -88,11 +91,21 @@ public class RoomService {
             room.setPaymentDay(null);
             room.setDepositAmount(null);
             room.setDepositDate(null);
+            room.setDepositPaid(false);
         } else {
             room.setContractUrl(request.getContractUrl() != null ? request.getContractUrl().trim() : null);
             room.setPaymentDay(request.getPaymentDay());
             room.setDepositAmount(request.getDepositAmount());
             room.setDepositDate(request.getDepositDate());
+            // Set depositPaid: if null in request, keep existing value; otherwise update (including false)
+            if (request.getDepositPaid() != null) {
+                room.setDepositPaid(request.getDepositPaid());
+            } else {
+                // If depositPaid is not provided in request, default to false if depositAmount is set, otherwise keep existing
+                if (request.getDepositAmount() != null && room.getDepositPaid() == null) {
+                    room.setDepositPaid(false);
+                }
+            }
         }
         room.setFixedElecAmount(request.getFixedElecAmount());
         room.setFixedWaterAmount(request.getFixedWaterAmount());
@@ -110,6 +123,41 @@ public class RoomService {
     /** When switching room from OCCUPIED to VACANT: create occupancy period (snapshot incl. deposit/contract), delete occupants, clear room deposit/contract. */
     private void archiveOccupantsAndVacate(Long propertyId, Long roomId, Room room) {
         LocalDate now = LocalDate.now();
+        int currentMonth = now.getMonthValue();
+        int currentYear = now.getYear();
+        
+        // Lấy số điện nước cuối cùng của phòng
+        // Ưu tiên: 1) Meter reading tháng hiện tại, 2) Meter reading gần nhất, 3) Initial readings của phòng
+        BigDecimal finalElecReading = null;
+        BigDecimal finalWaterReading = null;
+        
+        // Thử lấy meter reading của tháng hiện tại trước
+        Optional<com.management.domain.entity.MeterReading> currentMonthReading = 
+                meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, currentMonth, currentYear);
+        
+        if (currentMonthReading.isPresent()) {
+            // Có meter reading của tháng hiện tại → dùng
+            finalElecReading = currentMonthReading.get().getElecReading();
+            finalWaterReading = currentMonthReading.get().getWaterReading();
+        } else {
+            // Không có meter reading tháng hiện tại → lấy meter reading gần nhất
+            List<com.management.domain.entity.MeterReading> latestReadings = 
+                    meterReadingRepository.findByRoomIdOrderByYearDescMonthDesc(roomId);
+            if (!latestReadings.isEmpty()) {
+                com.management.domain.entity.MeterReading latest = latestReadings.get(0);
+                finalElecReading = latest.getElecReading();
+                finalWaterReading = latest.getWaterReading();
+            } else {
+                // Không có meter reading nào → lấy từ initial readings của phòng (nếu có)
+                if (room.getInitialElecReading() != null) {
+                    finalElecReading = room.getInitialElecReading();
+                }
+                if (room.getInitialWaterReading() != null) {
+                    finalWaterReading = room.getInitialWaterReading();
+                }
+            }
+        }
+        
         OccupancyPeriod period = OccupancyPeriod.builder()
                 .roomId(roomId)
                 .propertyId(propertyId)
@@ -121,6 +169,8 @@ public class RoomService {
                 .depositDate(room.getDepositDate())
                 .paymentDay(room.getPaymentDay())
                 .contractUrl(room.getContractUrl())
+                .finalElecReading(finalElecReading)
+                .finalWaterReading(finalWaterReading)
                 .build();
         period = occupancyPeriodRepository.save(period);
         List<Occupant> occupants = occupantRepository.findByRoomIdOrderByCreatedAtDesc(roomId);
@@ -182,6 +232,7 @@ public class RoomService {
                 .paymentDay(r.getPaymentDay())
                 .depositAmount(r.getDepositAmount())
                 .depositDate(r.getDepositDate())
+                .depositPaid(r.getDepositPaid() != null ? r.getDepositPaid() : false)
                 .fixedElecAmount(r.getFixedElecAmount())
                 .fixedWaterAmount(r.getFixedWaterAmount())
                 .initialElecReading(r.getInitialElecReading())

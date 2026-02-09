@@ -86,6 +86,8 @@ public class OccupancyPeriodService {
                 .depositDate(p.getDepositDate())
                 .paymentDay(p.getPaymentDay())
                 .contractUrl(p.getContractUrl())
+                .finalElecReading(p.getFinalElecReading())
+                .finalWaterReading(p.getFinalWaterReading())
                 .createdAt(p.getCreatedAt())
                 .build();
     }

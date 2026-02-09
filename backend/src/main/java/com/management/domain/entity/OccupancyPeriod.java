@@ -50,6 +50,14 @@ public class OccupancyPeriod {
     @Column(name = "contract_url", length = 1000)
     private String contractUrl;
 
+    /** Số điện cuối cùng khi chuyển từ cho thuê sang trống */
+    @Column(name = "final_elec_reading", precision = 12, scale = 2)
+    private BigDecimal finalElecReading;
+
+    /** Số nước cuối cùng khi chuyển từ cho thuê sang trống */
+    @Column(name = "final_water_reading", precision = 12, scale = 2)
+    private BigDecimal finalWaterReading;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

@@ -48,6 +48,10 @@ public class Room {
     @Column(name = "deposit_date")
     private LocalDate depositDate;
 
+    @Column(name = "deposit_paid")
+    @Builder.Default
+    private Boolean depositPaid = false;
+
     /** Giá điện cố định (đ/tháng). Nếu set thì hóa đơn dùng số này thay vì tính từ đồng hồ. */
     @Column(name = "fixed_elec_amount", precision = 12, scale = 2)
     private BigDecimal fixedElecAmount;

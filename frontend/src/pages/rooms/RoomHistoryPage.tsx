@@ -7,7 +7,7 @@ import {
 } from '@/api/occupancyPeriods'
 import { useProperty } from '@/hooks/useProperties'
 import { useRoom } from '@/hooks/useRooms'
-import { formatAmount, formatDate } from '@/utils'
+import { formatAmount, formatDate, formatDateVietnamese } from '@/utils'
 import type { OccupancyPeriod, OccupancyPeriodOccupant } from '@/types/occupancyPeriod'
 
 const DOC_BASE = import.meta.env.VITE_API_URL ?? ''
@@ -171,14 +171,18 @@ export function RoomHistoryPage() {
                     className="block rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-slate-600"
                   >
                     <span className="font-medium">{periodLabel(p)}</span>
-                    {(p.depositAmount != null || p.depositDate || p.paymentDay != null || p.contractUrl) && (
+                    {(p.depositAmount != null || p.depositDate || p.paymentDay != null || p.contractUrl || p.finalElecReading != null || p.finalWaterReading != null) && (
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {p.depositAmount != null && `Cọc: ${formatAmount(p.depositAmount)}`}
-                        {p.depositAmount != null && (p.depositDate || p.paymentDay != null) && ' • '}
-                        {p.depositDate && `Ngày cọc: ${formatDate(p.depositDate)}`}
-                        {p.depositDate && p.paymentDay != null && ' • '}
+                        {p.depositAmount != null && (p.depositDate || p.paymentDay != null || p.finalElecReading != null || p.finalWaterReading != null) && ' • '}
+                        {p.depositDate && formatDateVietnamese(p.depositDate)}
+                        {p.depositDate && (p.paymentDay != null || p.finalElecReading != null || p.finalWaterReading != null) && ' • '}
                         {p.paymentDay != null && `Ngày thanh toán: ${p.paymentDay}`}
-                        {((p.depositAmount != null) || p.depositDate || p.paymentDay != null) && p.contractUrl && ' • '}
+                        {p.paymentDay != null && (p.finalElecReading != null || p.finalWaterReading != null) && ' • '}
+                        {p.finalElecReading != null && `Điện: ${formatAmount(p.finalElecReading)}`}
+                        {p.finalElecReading != null && p.finalWaterReading != null && ' • '}
+                        {p.finalWaterReading != null && `Nước: ${formatAmount(p.finalWaterReading)}`}
+                        {((p.depositAmount != null) || p.depositDate || p.paymentDay != null || p.finalElecReading != null || p.finalWaterReading != null) && p.contractUrl && ' • '}
                         {p.contractUrl && 'Có hợp đồng'}
                       </p>
                     )}
@@ -187,6 +191,14 @@ export function RoomHistoryPage() {
               ))}
             </ul>
           ))}
+          <div className="mt-6">
+            <Link
+              to={`/properties/${propId}/rooms/${rId}/occupants`}
+              className="inline-block rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+            >
+              Quay lại
+            </Link>
+          </div>
         </>
       ) : (
         <>
@@ -195,7 +207,7 @@ export function RoomHistoryPage() {
               <p className="text-slate-600 dark:text-slate-300">
                 Kỳ: {periodLabel(currentPeriod)}
               </p>
-              {(currentPeriod.depositAmount != null || currentPeriod.depositDate || currentPeriod.paymentDay != null || currentPeriod.contractUrl) && (
+              {(currentPeriod.depositAmount != null || currentPeriod.depositDate || currentPeriod.paymentDay != null || currentPeriod.contractUrl || currentPeriod.finalElecReading != null || currentPeriod.finalWaterReading != null) && (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/50">
                   <p className="mb-1 font-medium text-slate-700 dark:text-slate-300">Thông tin đã lưu khi trả phòng</p>
                   <dl className="grid gap-1 text-slate-600 dark:text-slate-400 sm:grid-cols-2">
@@ -203,7 +215,7 @@ export function RoomHistoryPage() {
                       <><dt className="text-slate-500 dark:text-slate-400">Tiền đặt cọc</dt><dd>{formatAmount(currentPeriod.depositAmount)}</dd></>
                     )}
                     {currentPeriod.depositDate && (
-                      <><dt className="text-slate-500 dark:text-slate-400">Ngày cọc</dt><dd>{formatDate(currentPeriod.depositDate)}</dd></>
+                      <><dt className="text-slate-500 dark:text-slate-400">Ngày cọc</dt><dd>{formatDateVietnamese(currentPeriod.depositDate)}</dd></>
                     )}
                     {currentPeriod.paymentDay != null && (
                       <><dt className="text-slate-500 dark:text-slate-400">Ngày thanh toán</dt><dd>Mỗi tháng ngày {currentPeriod.paymentDay}</dd></>
@@ -222,6 +234,12 @@ export function RoomHistoryPage() {
                           </a>
                         </dd>
                       </>
+                    )}
+                    {currentPeriod.finalElecReading != null && (
+                      <><dt className="text-slate-500 dark:text-slate-400">Số điện cuối cùng</dt><dd>{formatAmount(currentPeriod.finalElecReading)}</dd></>
+                    )}
+                    {currentPeriod.finalWaterReading != null && (
+                      <><dt className="text-slate-500 dark:text-slate-400">Số nước cuối cùng</dt><dd>{formatAmount(currentPeriod.finalWaterReading)}</dd></>
                     )}
                   </dl>
                 </div>
@@ -262,12 +280,22 @@ export function RoomHistoryPage() {
               )}
             </>
           )}
-          <Link
-            to={`/properties/${propId}/rooms/${rId}/history`}
-            className="mt-6 inline-block text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-          >
-            ← Danh sách kỳ
-          </Link>
+          <div className="mt-6 flex gap-2">
+            {pId != null ? (
+              <Link
+                to={`/properties/${propId}/rooms/${rId}/history`}
+                className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              >
+                ← Danh sách kỳ
+              </Link>
+            ) : null}
+            <Link
+              to={pId != null ? `/properties/${propId}/rooms/${rId}/history` : `/properties/${propId}/rooms/${rId}/occupants`}
+              className="inline-block rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+            >
+              Quay lại
+            </Link>
+          </div>
         </>
       )}
 

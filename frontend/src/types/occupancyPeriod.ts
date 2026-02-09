@@ -10,6 +10,8 @@ export interface OccupancyPeriod {
   depositDate?: string | null
   paymentDay?: number | null
   contractUrl?: string | null
+  finalElecReading?: number | string | null
+  finalWaterReading?: number | string | null
   createdAt: string
 }
 

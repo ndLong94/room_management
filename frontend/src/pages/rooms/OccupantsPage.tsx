@@ -5,6 +5,7 @@ import { useProperty } from '@/hooks/useProperties'
 import { useRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useOccupants, useCreateOccupant, useUpdateOccupant, useDeleteOccupant } from '@/hooks/useOccupants'
 import { uploadFile } from '@/api/files'
+import { formatDateVietnamese } from '@/utils/format'
 import type { Occupant } from '@/types/occupant'
 
 const ENABLE_ZALO = import.meta.env.VITE_ENABLE_ZALO === 'true'
@@ -187,7 +188,7 @@ export function OccupantsPage() {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="mb-4 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-600 dark:hover:bg-slate-500"
+          className="mb-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
         >
           Thêm người ở
         </button>
@@ -196,6 +197,32 @@ export function OccupantsPage() {
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
           Chỉ thêm người ở khi phòng ở trạng thái Đã cho thuê. Vui lòng sửa phòng để đổi trạng thái.
         </p>
+      )}
+
+      {room && room.status === 'OCCUPIED' && (
+        <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50">
+          <div className="flex items-center gap-2">
+            {room.depositAmount != null ? (
+              <>
+                <span className={`text-sm font-medium ${room.depositPaid ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                  {room.depositPaid ? '✓ Đã cọc' : '○ Chưa cọc'}
+                </span>
+                <span className="text-sm text-slate-600 dark:text-slate-300">
+                  Tiền cọc: {typeof room.depositAmount === 'number' ? room.depositAmount.toLocaleString() : room.depositAmount} đ
+                </span>
+                {room.depositDate && (
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    • {formatDateVietnamese(room.depositDate)}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                ○ Chưa cọc
+              </span>
+            )}
+          </div>
+        </div>
       )}
 
       {ENABLE_ZALO && room && occupants && occupants.length > 0 && (
@@ -219,6 +246,7 @@ export function OccupantsPage() {
                 paymentDay: room.paymentDay ?? undefined,
                 depositAmount: room.depositAmount != null ? Number(room.depositAmount) : undefined,
                 depositDate: room.depositDate ?? undefined,
+                depositPaid: room.depositPaid ?? undefined,
                 fixedElecAmount: room.fixedElecAmount != null ? Number(room.fixedElecAmount) : undefined,
                 fixedWaterAmount: room.fixedWaterAmount != null ? Number(room.fixedWaterAmount) : undefined,
                 initialElecReading: room.initialElecReading != null ? Number(room.initialElecReading) : undefined,
@@ -294,14 +322,14 @@ export function OccupantsPage() {
               type="button"
               onClick={handleAdd}
               disabled={!formName.trim() || createOccupant.isPending}
-              className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-600"
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-600"
             >
               {createOccupant.isPending ? 'Đang lưu…' : 'Thêm'}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm dark:border-slate-600 dark:hover:bg-slate-700"
+              className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
             >
               Hủy
             </button>
@@ -360,14 +388,14 @@ export function OccupantsPage() {
                       type="button"
                       onClick={handleSaveEdit}
                       disabled={!formName.trim() || updateOccupant.isPending}
-                      className="rounded-lg bg-slate-800 px-3 py-2 text-sm text-white dark:bg-slate-600"
+                      className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
                     >
                       Lưu
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditingId(null)}
-                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600"
+                      className="rounded-lg bg-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
                     >
                       Hủy
                     </button>
@@ -376,8 +404,12 @@ export function OccupantsPage() {
               ) : (
                 <>
                   <p className="truncate font-medium text-slate-900 dark:text-white">{o.fullName}</p>
-                  <p className="truncate text-sm text-slate-600 dark:text-slate-300">{o.phone ?? '—'}</p>
-                  <p className="truncate text-sm text-slate-500 dark:text-slate-400">{o.idNumber ?? '—'}</p>
+                  <p className="truncate text-sm text-slate-600 dark:text-slate-300">
+                    {o.phone ? `SĐT: ${o.phone}` : '—'}
+                  </p>
+                  <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                    {o.idNumber ? `CCCD: ${o.idNumber}` : '—'}
+                  </p>
                   {ENABLE_ZALO && o.zaloUserId ? (
                     <p className="text-xs text-slate-500 dark:text-slate-400">Zalo ID: {o.zaloUserId}</p>
                   ) : null}
@@ -417,23 +449,23 @@ export function OccupantsPage() {
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700">
                     <Link
                       to={`/properties/${propId}/rooms/${rId}/occupants/${o.id}`}
-                      className="text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
+                      className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                     >
                       Xem
                     </Link>
                     <button
                       type="button"
                       onClick={() => handleEdit(o)}
-                      className="text-sm text-slate-600 dark:text-slate-400"
+                      className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500"
                     >
-                      Sửa
+                      Cập nhật
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(o.id, o.fullName)}
-                      className="text-sm text-red-600 dark:text-red-400"
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
                     >
-                      Xóa
+                      Xóa người ở
                     </button>
                   </div>
                 </>
@@ -530,14 +562,14 @@ export function OccupantsPage() {
                           type="button"
                           onClick={handleSaveEdit}
                           disabled={!formName.trim() || updateOccupant.isPending}
-                          className="mr-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                          className="mr-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
                         >
                           Lưu
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditingId(null)}
-                          className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                          className="rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
                         >
                           Hủy
                         </button>
@@ -549,10 +581,10 @@ export function OccupantsPage() {
                         {o.fullName}
                       </td>
                       <td className="min-w-0 truncate px-4 py-3 text-slate-600 dark:text-slate-300">
-                        {o.phone ?? '—'}
+                        {o.phone ? `SĐT: ${o.phone}` : '—'}
                       </td>
                       <td className="min-w-0 truncate px-4 py-3 text-slate-600 dark:text-slate-300">
-                        {o.idNumber ?? '—'}
+                        {o.idNumber ? `CCCD: ${o.idNumber}` : '—'}
                       </td>
                       <td className="min-w-0 max-w-[12rem] px-4 py-3">
                         <span className="line-clamp-2 block truncate text-slate-600 dark:text-slate-300" title={o.note ?? undefined}>
@@ -598,7 +630,7 @@ export function OccupantsPage() {
                       <td className="shrink-0 px-4 py-3 text-right">
                         <Link
                           to={`/properties/${propId}/rooms/${rId}/occupants/${o.id}`}
-                          className="mr-2 text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
+                          className="mr-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                         >
                           Xem
                         </Link>
@@ -624,6 +656,14 @@ export function OccupantsPage() {
             )}
           </tbody>
         </table>
+      </div>
+      <div className="mt-6">
+        <Link
+          to={`/properties/${propId}/rooms`}
+          className="inline-block rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+        >
+          Quay lại
+        </Link>
       </div>
     </div>
   )

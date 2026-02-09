@@ -38,6 +38,8 @@ public class CreateRoomRequest {
 
     private LocalDate depositDate;
 
+    private Boolean depositPaid;
+
     @DecimalMin("0")
     private BigDecimal fixedElecAmount;
 

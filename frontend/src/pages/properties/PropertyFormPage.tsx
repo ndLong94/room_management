@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -94,7 +94,13 @@ export function PropertyFormPage({ mode }: Props) {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">{isEdit ? 'Sửa bất động sản' : 'Thêm bất động sản'}</h1>
+      <Link
+        to="/properties"
+        className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+      >
+        ← Bất động sản
+      </Link>
+      <h1 className="mt-2 mb-6 text-2xl font-bold">{isEdit ? 'Sửa bất động sản' : 'Thêm bất động sản'}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="max-w-md space-y-4">
         <div>
           <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -172,17 +178,16 @@ export function PropertyFormPage({ mode }: Props) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-lg bg-slate-800 px-4 py-2 font-medium text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-600 dark:hover:bg-slate-500"
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
           >
             {isSubmitting ? 'Đang lưu…' : isEdit ? 'Cập nhật' : 'Tạo'}
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/properties')}
-            className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+          <Link
+            to="/properties"
+            className="rounded-lg bg-slate-200 px-4 py-2 font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
           >
-            Hủy
-          </button>
+            Quay lại
+          </Link>
         </div>
       </form>
     </div>

@@ -175,7 +175,8 @@ export function InvoiceListPage() {
         <button
           type="button"
           onClick={() => setFiltersExpanded((e) => !e)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
+          className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
+          style={{ height: '42px' }}
         >
           {filtersExpanded ? 'Ẩn bộ lọc' : 'Thêm bộ lọc'}
         </button>
@@ -495,6 +496,14 @@ export function InvoiceListPage() {
       <p className="mt-4 text-sm text-slate-500">
         Để tạo hóa đơn: vào Bất động sản → Phòng → nhập chỉ số điện nước theo tháng, sau đó dùng &quot;Tạo hóa đơn&quot; trên trang phòng.
       </p>
+      <div className="mt-6">
+        <Link
+          to="/"
+          className="inline-block rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+        >
+          Quay lại
+        </Link>
+      </div>
     </div>
   )
 }

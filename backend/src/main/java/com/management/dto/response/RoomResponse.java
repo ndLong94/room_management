@@ -25,6 +25,7 @@ public class RoomResponse {
     private Integer paymentDay;
     private BigDecimal depositAmount;
     private LocalDate depositDate;
+    private Boolean depositPaid;
     private BigDecimal fixedElecAmount;
     private BigDecimal fixedWaterAmount;
     private BigDecimal initialElecReading;

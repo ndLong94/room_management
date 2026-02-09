@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { useProperty } from '@/hooks/useProperties'
 import { useDeleteRoom, useRooms } from '@/hooks/useRooms'
 import { fetchOccupants } from '@/api/occupants'
+import { formatDateVietnamese } from '@/utils/format'
 
 export function RoomListPage() {
   const { propertyId } = useParams<{ propertyId: string }>()
@@ -59,7 +60,7 @@ export function RoomListPage() {
         </div>
         <Link
           to={`/properties/${id}/rooms/new`}
-          className="shrink-0 rounded-lg bg-slate-800 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-600 dark:hover:bg-slate-500"
+          className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
         >
           Thêm phòng
         </Link>
@@ -101,35 +102,53 @@ export function RoomListPage() {
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Ngày thanh toán: {paymentDayDisplay(r)}
               </p>
+              {r.status === 'OCCUPIED' && (
+                <p className="mt-1 text-xs">
+                  {r.depositAmount != null ? (
+                    <>
+                      <span className={`font-medium ${r.depositPaid ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                        {r.depositPaid ? '✓ Đã cọc' : '○ Chưa cọc'}
+                      </span>
+                      {' '}
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {typeof r.depositAmount === 'number' ? r.depositAmount.toLocaleString() : r.depositAmount} đ
+                      </span>
+                      {r.depositDate && (
+                        <span className="text-slate-500 dark:text-slate-400">
+                          {' • '}{formatDateVietnamese(r.depositDate)}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="font-medium text-orange-600 dark:text-orange-400">
+                      ○ Chưa cọc
+                    </span>
+                  )}
+                </p>
+              )}
               <div
                 className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700"
                 onClick={(e) => e.stopPropagation()}
               >
                 <Link
-                  to={`/properties/${id}/rooms/${r.id}/occupants`}
-                  className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                >
-                  Người ở
-                </Link>
-                <Link
                   to={`/properties/${id}/rooms/${r.id}/invoice`}
-                  className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                 >
                   Hóa đơn
                 </Link>
                 <button
                   type="button"
                   onClick={() => navigate(`/properties/${id}/rooms/${r.id}/edit`)}
-                  className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500"
                 >
-                  Sửa
+                  Cập nhật
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(r.id, r.name)}
-                  className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
                 >
-                  Xóa
+                  Xóa phòng
                 </button>
               </div>
             </div>
@@ -193,33 +212,51 @@ export function RoomListPage() {
                   </td>
                   <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-300">
                     {paymentDayDisplay(r)}
+                    {r.status === 'OCCUPIED' && (
+                      <div className="mt-1">
+                        {r.depositAmount != null ? (
+                          <>
+                            <span className={`text-xs font-medium ${r.depositPaid ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                              {r.depositPaid ? '✓ Đã cọc' : '○ Chưa cọc'}
+                            </span>
+                            {' '}
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              {typeof r.depositAmount === 'number' ? r.depositAmount.toLocaleString() : r.depositAmount} đ
+                            </span>
+                            {r.depositDate && (
+                              <span className="text-xs text-slate-500 dark:text-slate-400">
+                                {' • '}{formatDateVietnamese(r.depositDate)}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs font-medium text-orange-600 dark:text-orange-400">
+                            ○ Chưa cọc
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <Link
-                      to={`/properties/${id}/rooms/${r.id}/occupants`}
-                      className="mr-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                    >
-                      Người ở
-                    </Link>
-                    <Link
                       to={`/properties/${id}/rooms/${r.id}/invoice`}
-                      className="mr-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      className="mr-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                     >
                       Hóa đơn
                     </Link>
                     <button
                       type="button"
                       onClick={() => navigate(`/properties/${id}/rooms/${r.id}/edit`)}
-                      className="mr-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      className="mr-2 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500"
                     >
-                      Sửa
+                      Cập nhật
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(r.id, r.name)}
-                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
                     >
-                      Xóa
+                      Xóa phòng
                     </button>
                   </td>
                 </tr>

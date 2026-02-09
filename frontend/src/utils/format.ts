@@ -22,6 +22,18 @@ export function formatDate(isoDate: string | null | undefined): string {
   return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`
 }
 
+/** Format ISO date (yyyy-MM-dd) to "Ngày DD tháng MM YYYY" */
+export function formatDateVietnamese(isoDate: string | null | undefined): string {
+  if (!isoDate) return ''
+  const [y, m, d] = isoDate.split('-').map(Number)
+  if (Number.isNaN(d) || Number.isNaN(m) || Number.isNaN(y)) return isoDate
+  const monthNames = [
+    '1', '2', '3', '4', '5', '6',
+    '7', '8', '9', '10', '11', '12'
+  ]
+  return `Ngày ${d} tháng ${monthNames[m - 1]} ${y}`
+}
+
 /** True if today (date only) is >= dueDate (yyyy-MM-dd). */
 export function isDueDateReached(dueDate: string | null | undefined): boolean {
   if (!dueDate) return true

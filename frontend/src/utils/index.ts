@@ -1,1 +1,1 @@
-export { formatMoney, formatAmount, formatDate, isDueDateReached } from './format'
+export { formatMoney, formatAmount, formatDate, formatDateVietnamese, isDueDateReached } from './format'
