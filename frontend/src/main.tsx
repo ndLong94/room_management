@@ -25,12 +25,13 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <App />
           <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: { borderRadius: '8px' },
-          }}
-        />
+            position="top-right"
+            containerStyle={{ zIndex: 99999 }}
+            toastOptions={{
+              duration: 4000,
+              style: { borderRadius: '8px' },
+            }}
+          />
         </BrowserRouter>
       </GoogleOAuthProvider>
     </QueryClientProvider>

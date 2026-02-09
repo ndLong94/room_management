@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { updateProfile } from '@/api/auth'
 import { useQueryClient } from '@tanstack/react-query'
@@ -45,7 +46,7 @@ export function ProfileEditPage() {
       toast.success('Đã cập nhật thông tin')
       navigate('/profile', { replace: true })
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không thể cập nhật'
+      const msg = getErrorMessageVi(err, 'Không thể cập nhật')
       setSubmitError(msg)
       toast.error(msg)
     }

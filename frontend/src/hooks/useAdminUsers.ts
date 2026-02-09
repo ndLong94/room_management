@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import {
   fetchAdminUsers,
   fetchAdminUserDetail,
@@ -60,8 +61,8 @@ export function useCreateUser() {
       queryClient.invalidateQueries({ queryKey: ['admin'] })
       toast.success('Đã tạo user')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err?.response?.data?.message || 'Không thể tạo user')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể tạo người dùng'))
     },
   })
 }

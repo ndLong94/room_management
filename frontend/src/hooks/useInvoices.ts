@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import {
   fetchInvoice,
   fetchInvoices,
@@ -58,10 +59,9 @@ export function useGenerateInvoice() {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
       toast.success('Đã tạo hóa đơn')
     },
-    onError: (err: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (err?.response?.status === 409) return
-      const msg = err?.response?.data?.message ?? 'Không thể tạo hóa đơn'
-      toast.error(msg)
+    onError: (err: unknown) => {
+      if ((err as { response?: { status?: number } })?.response?.status === 409) return
+      toast.error(getErrorMessageVi(err, 'Không thể tạo hóa đơn'))
     },
   })
 }
@@ -98,8 +98,8 @@ export function useDeleteInvoice() {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
       toast.success('Đã xóa hóa đơn')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err?.response?.data?.message ?? 'Không thể xóa hóa đơn')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể xóa hóa đơn'))
     },
   })
 }
@@ -108,8 +108,8 @@ export function useSendInvoiceZalo() {
   return useMutation({
     mutationFn: (id: number) => sendInvoiceZalo(id),
     onSuccess: () => toast.success('Đã gửi tin nhắn Zalo'),
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err?.response?.data?.message ?? 'Gửi Zalo thất bại')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Gửi Zalo thất bại'))
     },
   })
 }

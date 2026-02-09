@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import type { RoomStatus } from '@/types/room'
+import { getErrorMessageVi } from '@/utils'
 import { useProperty } from '@/hooks/useProperties'
 import { useCreateRoom, useRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useOccupants } from '@/hooks/useOccupants'
@@ -102,11 +103,7 @@ export function RoomFormPage({ mode }: Props) {
       setContractUrl(url)
       toast.success('Đã tải hợp đồng lên')
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response
-          ? (err.response.data as { message?: string })?.message
-          : null
-      toast.error(msg || 'Tải lên thất bại. Kiểm tra file (tối đa 5MB, ảnh hoặc PDF).')
+      toast.error(getErrorMessageVi(err, 'Tải lên thất bại. Kiểm tra file (tối đa 5MB, ảnh hoặc PDF).'))
     } finally {
       setUploadingContract(false)
     }

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import {
   createFeedback,
   fetchMyFeedback,
@@ -34,8 +35,8 @@ export function useCreateFeedback() {
       queryClient.invalidateQueries({ queryKey: ['feedback'] })
       toast.success('Đã gửi ý kiến')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err?.response?.data?.message ?? 'Không thể gửi ý kiến')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể gửi ý kiến'))
     },
   })
 }
@@ -49,8 +50,8 @@ export function useUpdateMyFeedback() {
       queryClient.invalidateQueries({ queryKey: ['feedback'] })
       toast.success('Đã cập nhật ý kiến')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err?.response?.data?.message ?? 'Không thể cập nhật')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể cập nhật'))
     },
   })
 }
@@ -63,8 +64,8 @@ export function useDeleteMyFeedback() {
       queryClient.invalidateQueries({ queryKey: ['feedback'] })
       toast.success('Đã xóa ý kiến')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err?.response?.data?.message ?? 'Không thể xóa')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể xóa'))
     },
   })
 }
@@ -78,8 +79,8 @@ export function useReplyMyFeedback() {
       queryClient.invalidateQueries({ queryKey: ['feedback'] })
       toast.success('Đã gửi phản hồi')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err?.response?.data?.message ?? 'Không thể gửi phản hồi')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể gửi phản hồi'))
     },
   })
 }
@@ -94,8 +95,8 @@ export function useReplyAdminFeedback() {
       queryClient.invalidateQueries({ queryKey: ['feedback'] })
       toast.success('Đã gửi phản hồi')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err?.response?.data?.message ?? 'Không thể gửi phản hồi')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể gửi phản hồi'))
     },
   })
 }

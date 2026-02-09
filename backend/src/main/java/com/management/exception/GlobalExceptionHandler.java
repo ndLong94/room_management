@@ -35,11 +35,11 @@ public class GlobalExceptionHandler {
         List<FieldErrorDto> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> new FieldErrorDto(
                         fe.getField(),
-                        fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value",
+                        fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Giá trị không hợp lệ",
                         fe.getRejectedValue()))
                 .collect(Collectors.toList());
-        ErrorResponse body = buildError(request, HttpStatus.BAD_REQUEST, "Validation Failed",
-                "One or more fields have validation errors.", errors);
+        ErrorResponse body = buildError(request, HttpStatus.BAD_REQUEST, "Lỗi xác thực",
+                "Một hoặc nhiều trường không hợp lệ.", errors);
         log.warn("Validation failed: {}", errors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
@@ -49,11 +49,11 @@ public class GlobalExceptionHandler {
         List<FieldErrorDto> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> new FieldErrorDto(
                         fe.getField(),
-                        fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value",
+                        fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Giá trị không hợp lệ",
                         fe.getRejectedValue()))
                 .collect(Collectors.toList());
-        ErrorResponse body = buildError(request, HttpStatus.BAD_REQUEST, "Validation Failed",
-                "One or more fields have validation errors.", errors);
+        ErrorResponse body = buildError(request, HttpStatus.BAD_REQUEST, "Lỗi xác thực",
+                "Một hoặc nhiều trường không hợp lệ.", errors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
@@ -61,22 +61,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex,
                                                               HttpServletRequest request) {
         ErrorResponse body = buildError(request, HttpStatus.UNAUTHORIZED, "Unauthorized",
-                "Invalid username or password.", null);
+                "Tên đăng nhập hoặc mật khẩu không đúng.", null);
         log.debug("Bad credentials: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
     }
 
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex, HttpServletRequest request) {
-        ErrorResponse body = buildError(request, HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), null);
+        ErrorResponse body = buildError(request, HttpStatus.BAD_REQUEST, "Lỗi xác thực", ex.getMessage(), null);
         log.warn("Auth error: {}", ex.getMessage());
         return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
     public ResponseEntity<ErrorResponse> handleExpiredJwt(ExpiredJwtException ex, HttpServletRequest request) {
-        ErrorResponse body = buildError(request, HttpStatus.UNAUTHORIZED, "Unauthorized",
-                "Token has expired.", null);
+        ErrorResponse body = buildError(request, HttpStatus.UNAUTHORIZED, "Phiên đăng nhập hết hạn",
+                "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", null);
         log.debug("Expired JWT: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
     }
@@ -84,8 +84,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex,
                                                             HttpServletRequest request) {
-        ErrorResponse body = buildError(request, HttpStatus.FORBIDDEN, "Forbidden",
-                "Access denied.", null);
+        ErrorResponse body = buildError(request, HttpStatus.FORBIDDEN, "Từ chối truy cập",
+                "Bạn không có quyền thực hiện thao tác này.", null);
         log.warn("Access denied: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
@@ -93,8 +93,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NoResourceFoundException ex,
                                                         HttpServletRequest request) {
-        ErrorResponse body = buildError(request, HttpStatus.NOT_FOUND, "Not Found",
-                "Resource not found.", null);
+        ErrorResponse body = buildError(request, HttpStatus.NOT_FOUND, "Không tìm thấy",
+                "Không tìm thấy tài nguyên.", null);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
@@ -160,7 +160,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
         log.error("Unhandled exception", ex);
         ErrorResponse body = buildError(request, HttpStatus.INTERNAL_SERVER_ERROR,
-                "Internal Server Error", "An unexpected error occurred.", null);
+                "Lỗi máy chủ", "Đã xảy ra lỗi. Vui lòng thử lại sau.", null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 

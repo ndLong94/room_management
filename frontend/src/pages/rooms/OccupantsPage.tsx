@@ -6,6 +6,7 @@ import { useRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useOccupants, useCreateOccupant, useUpdateOccupant, useDeleteOccupant } from '@/hooks/useOccupants'
 import { uploadFile } from '@/api/files'
 import { formatDateVietnamese } from '@/utils/format'
+import { getErrorMessageVi } from '@/utils'
 import type { Occupant } from '@/types/occupant'
 
 const ENABLE_ZALO = import.meta.env.VITE_ENABLE_ZALO === 'true'
@@ -135,11 +136,7 @@ export function OccupantsPage() {
         }
       )
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response
-          ? (err.response.data as { message?: string })?.message
-          : null
-      toast.error(msg || 'Tải lên thất bại. Kiểm tra file (tối đa 5MB, ảnh hoặc PDF).')
+      toast.error(getErrorMessageVi(err, 'Tải lên thất bại. Kiểm tra file (tối đa 5MB, ảnh hoặc PDF).'))
       setUploading(null)
     } finally {
       setUploading(null)

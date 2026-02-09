@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import { useDeleteProperty, useProperties } from '@/hooks/useProperties'
 
 const PAGE_SIZE = 10
@@ -36,8 +37,7 @@ export function PropertyListPage() {
     
     deleteProperty.mutate(id, {
       onError: (err: any) => {
-        const message = err?.response?.data?.message || 'Không thể xóa bất động sản này.'
-        toast.error(message)
+        toast.error(getErrorMessageVi(err, 'Không thể xóa bất động sản này.'))
       },
     })
   }

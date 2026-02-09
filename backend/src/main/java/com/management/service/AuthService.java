@@ -54,9 +54,9 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByUsernameIgnoreCase(request.getUsername().trim())
-                .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
+                .orElseThrow(() -> new BadCredentialsException("Tên đăng nhập hoặc mật khẩu không đúng."));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BadCredentialsException("Invalid username or password");
+            throw new BadCredentialsException("Tên đăng nhập hoặc mật khẩu không đúng.");
         }
         if (user.getStatus() != UserStatus.ACTIVE) {
             if (user.getStatus() == UserStatus.DRAFT) {

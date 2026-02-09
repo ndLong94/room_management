@@ -6,7 +6,7 @@ import { useProperty } from '@/hooks/useProperties'
 import { useRoom } from '@/hooks/useRooms'
 import { useInvoices, useGenerateInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
 import { createMeterReading, getMeterReading } from '@/api/meterReadings'
-import { formatAmount, formatDate, isDueDateReached } from '@/utils'
+import { formatAmount, formatDate, getErrorMessageVi, isDueDateReached } from '@/utils'
 
 function prevMonthYear(month: number, year: number) {
   if (month === 1) return { month: 12, year: year - 1 }
@@ -99,9 +99,9 @@ export function RoomInvoicePage() {
         { propertyId: propId, roomId: rId, month: meterMonth, year: meterYear },
         {
           onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }),
-          onError: (err: { response?: { status?: number; data?: { message?: string } } }) => {
-            if (err?.response?.status === 409) {
-              window.alert(err?.response?.data?.message ?? 'Hóa đơn đã thanh toán, không thể chỉnh sửa.')
+          onError: (err: unknown) => {
+            if ((err as { response?: { status?: number } })?.response?.status === 409) {
+              window.alert(getErrorMessageVi(err, 'Hóa đơn đã thanh toán, không thể chỉnh sửa.'))
             }
           },
         }
@@ -133,8 +133,7 @@ export function RoomInvoicePage() {
         })
         queryClient.invalidateQueries({ queryKey: ['meter-reading'] })
       } catch (err: unknown) {
-        const msg = err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data ? String((err.response.data as { message: unknown }).message) : null
-        toast.error(msg ?? 'Không lưu được chỉ số điện nước.')
+        toast.error(getErrorMessageVi(err, 'Không lưu được chỉ số điện nước.'))
         return
       }
     }
@@ -144,9 +143,9 @@ export function RoomInvoicePage() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['invoices'] })
         },
-        onError: (err: { response?: { status?: number; data?: { message?: string } } }) => {
-          if (err?.response?.status === 409) {
-            window.alert(err?.response?.data?.message ?? 'Hóa đơn đã thanh toán, không thể chỉnh sửa.')
+        onError: (err: unknown) => {
+          if ((err as { response?: { status?: number } })?.response?.status === 409) {
+            window.alert(getErrorMessageVi(err, 'Hóa đơn đã thanh toán, không thể chỉnh sửa.'))
           }
         },
       }

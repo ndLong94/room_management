@@ -7,6 +7,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
+import { getErrorMessageVi } from '@/utils'
 
 declare global {
   interface Window {
@@ -32,10 +33,6 @@ const registerSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>
 type RegisterForm = z.infer<typeof registerSchema>
 
-function getErrorMessage(err: unknown): string {
-  const data = (err as { response?: { data?: { message?: string } } })?.response?.data
-  return data?.message || 'Có lỗi xảy ra'
-}
 
 const VITE_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
 const VITE_FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID ?? ''
@@ -90,7 +87,7 @@ export function LoginPage() {
         navigate(res.data.user?.role === 'ADMIN' ? '/admin/users' : '/', { replace: true })
       }
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err) || 'Sai tên đăng nhập hoặc mật khẩu')
+      toast.error(getErrorMessageVi(err, 'Sai tên đăng nhập hoặc mật khẩu.'))
     }
   }
 
@@ -109,7 +106,7 @@ export function LoginPage() {
       const res = await api.post<{ access_token: string; user?: { role?: string; [key: string]: unknown } }>('/api/auth/google', { credential })
       handleOAuthSuccess(res)
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err))
+      toast.error(getErrorMessageVi(err))
     }
   }
 
@@ -130,7 +127,7 @@ export function LoginPage() {
           })
           handleOAuthSuccess(res)
         } catch (err: unknown) {
-          toast.error(getErrorMessage(err))
+          toast.error(getErrorMessageVi(err))
         }
       },
       { scope: 'email,public_profile' }
@@ -154,7 +151,7 @@ export function LoginPage() {
         navigate('/', { replace: true })
       }
     } catch (err: unknown) {
-      const msg = getErrorMessage(err)
+      const msg = getErrorMessageVi(err)
       toast.error(msg)
       window.alert(msg)
     }
