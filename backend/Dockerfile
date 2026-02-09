@@ -22,7 +22,10 @@ RUN addgroup -g 1000 app && adduser -u 1000 -G app -D app
 COPY --from=build /app/target/management-backend-*.jar app.jar
 
 # Upload dir (bind mount or volume in production)
-RUN mkdir -p /app/uploads && chown -R app:app /app
+# Create uploads directory with proper permissions
+RUN mkdir -p /app/uploads && \
+    chown -R app:app /app && \
+    chmod -R 755 /app/uploads
 
 USER app
 
