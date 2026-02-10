@@ -155,7 +155,7 @@ export function InvoiceListPage() {
         <h1 className="text-xl font-bold sm:text-2xl">Hóa đơn</h1>
       </div>
       <div className="mb-4 flex flex-wrap items-end gap-3 sm:gap-4">
-        <div className="min-w-0 sm:w-36">
+        <div className="relative min-w-[9rem] sm:w-48">
           <label className="mb-1 block text-xs font-medium text-slate-500">Trạng thái</label>
           <select
             value={status}
@@ -165,12 +165,26 @@ export function InvoiceListPage() {
               updateUrl({ status: v })
               setPage(1)
             }}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+            className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2 pr-8 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
           >
             <option value="">Tất cả</option>
             <option value="UNPAID">Chưa thanh toán</option>
             <option value="PAID">Đã thanh toán</option>
           </select>
+          <span className="pointer-events-none absolute right-2 top-[30px] flex items-center text-slate-400 dark:text-slate-300">
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </span>
         </div>
         <button
           type="button"

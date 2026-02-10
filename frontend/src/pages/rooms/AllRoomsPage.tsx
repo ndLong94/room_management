@@ -146,7 +146,7 @@ export function AllRoomsPage() {
         <>
           <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50">
             <div className="flex items-end gap-3">
-              <div className="relative min-w-0 flex-1">
+              <div className="relative min-w-[9rem] sm:w-48">
                 <label className="mb-1 block text-xs font-medium text-slate-500">Trạng thái</label>
                 <select
                   value={statusFilter === '' ? '' : statusFilter}
@@ -157,7 +157,7 @@ export function AllRoomsPage() {
                   <option value="OCCUPIED">Đã cho thuê</option>
                   <option value="VACANT">Còn trống</option>
                 </select>
-                <span className="pointer-events-none absolute inset-y-7 right-2 flex items-center text-slate-400 dark:text-slate-300">
+                <span className="pointer-events-none absolute right-2 top-[30px] flex items-center text-slate-400 dark:text-slate-300">
                   <svg
                     className="h-4 w-4"
                     viewBox="0 0 20 20"
