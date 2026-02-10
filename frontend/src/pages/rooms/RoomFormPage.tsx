@@ -57,7 +57,7 @@ export function RoomFormPage({ mode }: Props) {
     initialElecReading?: number
     initialWaterReading?: number
   } | null>(null)
-  const [depositAmount, setDepositAmount] = useState<number | ''>('')
+  const [depositAmount, setDepositAmount] = useState<string>('')
   const [depositDate, setDepositDate] = useState(() => todayDateString())
   const [depositPaid, setDepositPaid] = useState(false)
   const [meterElec, setMeterElec] = useState('')
@@ -77,6 +77,7 @@ export function RoomFormPage({ mode }: Props) {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: '', rentPrice: 0, status: 'VACANT' },
@@ -87,9 +88,13 @@ export function RoomFormPage({ mode }: Props) {
       reset({ name: room.name, rentPrice: room.rentPrice ?? 0, status: room.status })
       setContractUrl(room.contractUrl ?? null)
       setPaymentDay(room.paymentDay ?? '')
-      setDepositAmount(room.depositAmount != null ? Number(room.depositAmount) : '')
+      setDepositAmount(room.depositAmount != null ? String(room.depositAmount) : '')
       setDepositDate(room.depositDate ?? todayDateString())
       setDepositPaid(room.depositPaid ?? false)
+      if (room.rentPrice != null) {
+        const rent = typeof room.rentPrice === 'string' ? room.rentPrice : String(room.rentPrice)
+        setValue('rentPrice', Number(rent) || 0)
+      }
     }
   }, [isEdit, room, reset])
 
@@ -123,7 +128,12 @@ export function RoomFormPage({ mode }: Props) {
     status: values.status as RoomStatus,
     ...(isEdit && { contractUrl: contractUrl ?? undefined }),
     paymentDay: paymentDay === '' ? undefined : paymentDay,
-    depositAmount: overrides?.depositAmount !== undefined ? overrides.depositAmount : (depositAmount === '' ? undefined : depositAmount),
+    depositAmount:
+      overrides?.depositAmount !== undefined
+        ? overrides.depositAmount
+        : depositAmount === ''
+          ? undefined
+          : Number(depositAmount),
     depositDate: overrides?.depositDate !== undefined ? overrides.depositDate : (depositDate.trim() || undefined),
     // Khi edit, luôn gửi depositPaid (kể cả false) để backend có thể update
     depositPaid: overrides?.depositPaid !== undefined ? overrides.depositPaid : (isEdit ? depositPaid : undefined),
@@ -153,7 +163,7 @@ export function RoomFormPage({ mode }: Props) {
         ...buildPayload(values),
         paymentDay: defaultPaymentDay,
         // Khi chuyển sang OCCUPIED, nếu không có depositAmount thì depositPaid = false
-        depositAmount: depositAmount === '' ? undefined : depositAmount,
+        depositAmount: depositAmount === '' ? undefined : Number(depositAmount),
         depositDate: depositDate.trim() || undefined,
         depositPaid: depositAmount === '' ? false : depositPaid,
       })
@@ -287,12 +297,20 @@ export function RoomFormPage({ mode }: Props) {
           </label>
           <input
             id="rentPrice"
-            type="number"
-            step="0.01"
-            min="0"
-            {...register('rentPrice')}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9,]*"
+            onChange={(e) => {
+              const digits = e.target.value.replace(/[^\d]/g, '')
+              const display = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+              // hiển thị lại trong input
+              ;(e.target as HTMLInputElement).value = display
+              const n = digits === '' ? 0 : Number(digits)
+              setValue('rentPrice', n, { shouldValidate: true })
+            }}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
           />
+          <input type="hidden" {...register('rentPrice')} />
           {errors.rentPrice && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.rentPrice.message}</p>
           )}
@@ -326,7 +344,7 @@ export function RoomFormPage({ mode }: Props) {
             onChange={(e) => setPaymentDay(e.target.value === '' ? '' : Number(e.target.value))}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
           >
-            <option value="">Không đặt (tạo hóa đơn thủ công)</option>
+            <option value="">Không đặt (Mặc định là ngày 1 hàng tháng)</option>
             {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
               <option key={d} value={d}>Ngày {d}</option>
             ))}
@@ -341,11 +359,18 @@ export function RoomFormPage({ mode }: Props) {
           </label>
           <input
             id="depositAmount"
-            type="number"
-            min="0"
-            step="1000"
-            value={depositAmount === '' ? '' : depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value === '' ? '' : Number(e.target.value))}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9,]*"
+            value={
+              depositAmount === ''
+                ? ''
+                : depositAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+            }
+            onChange={(e) => {
+              const digits = e.target.value.replace(/[^\d]/g, '')
+              setDepositAmount(digits)
+            }}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
           />
         </div>
@@ -482,11 +507,18 @@ export function RoomFormPage({ mode }: Props) {
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-500">Điện (đ/tháng)</label>
                     <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      value={fixedElec}
-                      onChange={(e) => setFixedElec(e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9,]*"
+                      value={
+                        fixedElec === ''
+                          ? ''
+                          : fixedElec.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                      }
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/[^\d]/g, '')
+                        setFixedElec(digits)
+                      }}
                       placeholder="100000"
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                     />
@@ -494,11 +526,18 @@ export function RoomFormPage({ mode }: Props) {
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-500">Nước (đ/tháng)</label>
                     <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      value={fixedWater}
-                      onChange={(e) => setFixedWater(e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9,]*"
+                      value={
+                        fixedWater === ''
+                          ? ''
+                          : fixedWater.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                      }
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/[^\d]/g, '')
+                        setFixedWater(digits)
+                      }}
                       placeholder="50000"
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                     />

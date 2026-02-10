@@ -57,6 +57,7 @@ export function useGenerateInvoice() {
     }) => generateInvoice(propertyId, roomId, month, year),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'summary'] })
       toast.success('Đã tạo hóa đơn')
     },
     onError: (err: unknown) => {
@@ -72,6 +73,7 @@ export function useMarkInvoicePaid() {
     mutationFn: ({ id, input }: { id: number; input: MarkPaidInput }) => markInvoicePaid(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'summary'] })
       toast.success('Đã đánh dấu đã thanh toán')
     },
     onError: () => toast.error('Không thể cập nhật hóa đơn'),
@@ -84,6 +86,7 @@ export function useMarkInvoiceUnpaid() {
     mutationFn: (id: number) => markInvoiceUnpaid(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'summary'] })
       toast.success('Đã đánh dấu chưa thanh toán')
     },
     onError: () => toast.error('Không thể cập nhật hóa đơn'),
@@ -96,6 +99,7 @@ export function useDeleteInvoice() {
     mutationFn: (id: number) => deleteInvoice(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'summary'] })
       toast.success('Đã xóa hóa đơn')
     },
     onError: (err: unknown) => {

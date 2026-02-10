@@ -93,6 +93,14 @@ mvn spring-boot:run
 
 ## Build
 
+Requires **Java 17** (e.g. set `JAVA_HOME` to JDK 17). On Windows, if you have JDK 17 under `%USERPROFILE%\.jdks` (e.g. Corretto 17), you can run:
+
+```powershell
+.\build.ps1
+```
+
+Otherwise:
+
 ```bash
 mvn clean package
 java -jar target/management-backend-1.0.0-SNAPSHOT.jar

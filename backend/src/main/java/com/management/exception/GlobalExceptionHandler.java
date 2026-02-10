@@ -138,6 +138,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
+    @ExceptionHandler(TenantNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTenantNotFound(TenantNotFoundException ex,
+                                                               HttpServletRequest request) {
+        ErrorResponse body = buildError(request, HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), null);
+        log.debug("Tenant not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(RoomLeaseNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRoomLeaseNotFound(RoomLeaseNotFoundException ex,
+                                                                 HttpServletRequest request) {
+        ErrorResponse body = buildError(request, HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), null);
+        log.debug("Room lease not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex,
                                                                HttpServletRequest request) {

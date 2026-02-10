@@ -146,25 +146,40 @@ export function AllRoomsPage() {
         <>
           <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50">
             <div className="flex items-end gap-3">
-              <div className="min-w-0 flex-1">
+              <div className="relative min-w-0 flex-1">
                 <label className="mb-1 block text-xs font-medium text-slate-500">Trạng thái</label>
                 <select
                   value={statusFilter === '' ? '' : statusFilter}
                   onChange={(e) => setStatusInUrl((e.target.value === '' ? '' : e.target.value) as RoomStatus | '')}
-                  className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                  className="w-full min-w-0 appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2 pr-8 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                 >
                   <option value="">Tất cả</option>
                   <option value="OCCUPIED">Đã cho thuê</option>
                   <option value="VACANT">Còn trống</option>
                 </select>
+                <span className="pointer-events-none absolute inset-y-7 right-2 flex items-center text-slate-400 dark:text-slate-300">
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
               </div>
               <button
                 type="button"
                 onClick={() => setFiltersExpanded((e) => !e)}
-                className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                 style={{ height: '42px' }}
               >
-                {filtersExpanded ? 'Thu gọn' : 'Thêm bộ lọc'}
+                <span className="text-base leading-none">{filtersExpanded ? '−' : '+'}</span>
+                <span>{filtersExpanded ? 'Thu gọn' : 'Thêm bộ lọc'}</span>
               </button>
             </div>
             {filtersExpanded && (

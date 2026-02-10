@@ -21,6 +21,7 @@ const AdminUserDetailPage = lazy(() => import('@/pages/admin/AdminUserDetailPage
 const AdminFeedbackPage = lazy(() => import('@/pages/admin/AdminFeedbackPage').then((m) => ({ default: m.AdminFeedbackPage })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const ProfileEditPage = lazy(() => import('@/pages/ProfileEditPage').then((m) => ({ default: m.ProfileEditPage })))
+const TenantsPage = lazy(() => import('@/pages/tenants/TenantsPage').then((m) => ({ default: m.TenantsPage })))
 const HomeOrRedirect = lazy(() => import('@/pages/HomeOrRedirect').then((m) => ({ default: m.HomeOrRedirect })))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -59,6 +60,7 @@ export function AppRoutes() {
         <Route path="settings/pricing" element={<PricingSettingsPage />} />
         <Route path="invoices" element={<InvoiceListPage />} />
         <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+        <Route path="tenants" element={<TenantsPage />} />
         <Route path="rooms" element={<AllRoomsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/edit" element={<ProfileEditPage />} />

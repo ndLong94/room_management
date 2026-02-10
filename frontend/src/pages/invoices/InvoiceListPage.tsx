@@ -143,6 +143,17 @@ export function InvoiceListPage() {
     if (page > totalPages && totalPages >= 1) setPage(totalPages)
   }, [totalPages, page])
 
+  const paidInvoices = sortedInvoices.filter((inv) => inv.status === 'PAID')
+  const unpaidInvoices = sortedInvoices.filter((inv) => inv.status === 'UNPAID')
+  const totalPaidAmount = paidInvoices.reduce(
+    (sum, inv) => sum + (typeof inv.totalAmount === 'string' ? parseFloat(inv.totalAmount) || 0 : Number(inv.totalAmount) || 0),
+    0
+  )
+  const totalUnpaidAmount = unpaidInvoices.reduce(
+    (sum, inv) => sum + (typeof inv.totalAmount === 'string' ? parseFloat(inv.totalAmount) || 0 : Number(inv.totalAmount) || 0),
+    0
+  )
+
   return (
     <div className="min-w-0">
       <div className="mb-4 flex flex-col gap-2 sm:mb-6">
@@ -175,10 +186,11 @@ export function InvoiceListPage() {
         <button
           type="button"
           onClick={() => setFiltersExpanded((e) => !e)}
-          className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           style={{ height: '42px' }}
         >
-          {filtersExpanded ? 'Ẩn bộ lọc' : 'Thêm bộ lọc'}
+          <span className="text-base leading-none">{filtersExpanded ? '−' : '+'}</span>
+          <span>{filtersExpanded ? 'Ẩn bộ lọc' : 'Thêm bộ lọc'}</span>
         </button>
         {filtersExpanded && (
           <div className="flex w-full flex-wrap items-end gap-3 sm:flex-row sm:gap-4">
@@ -243,6 +255,34 @@ export function InvoiceListPage() {
           </div>
         )}
       </div>
+      {/* {!isLoading && !error && sortedInvoices.length > 0 && (
+        <div className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-slate-700 dark:bg-slate-800 sm:grid-cols-3">
+          <div>
+            <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Tổng số hóa đơn</p>
+            <p className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+              {sortedInvoices.length.toLocaleString('vi-VN')}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Đã thu</p>
+            <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+              {paidInvoices.length.toLocaleString('vi-VN')} hóa đơn
+            </p>
+            <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              {formatAmount(totalPaidAmount)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Chưa thu</p>
+            <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+              {unpaidInvoices.length.toLocaleString('vi-VN')} hóa đơn
+            </p>
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+              {formatAmount(totalUnpaidAmount)}
+            </p>
+          </div>
+        </div>
+      )} */}
       {isLoading && <p className="text-slate-500">Đang tải…</p>}
       {error && <p className="text-red-600">Không tải được danh sách hóa đơn.</p>}
       {!isLoading && !error && (
@@ -308,7 +348,7 @@ export function InvoiceListPage() {
                         <button
                           type="button"
                           onClick={() => handleMarkPaid(inv.id)}
-                          className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                          className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                         >
                           Đánh dấu đã thu
                         </button>
@@ -316,16 +356,16 @@ export function InvoiceListPage() {
                           type="button"
                           onClick={() => handleDelete(inv.id)}
                           disabled={deleteInvoice.isPending}
-                          className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                          className="rounded-full bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50 dark:bg-red-500 dark:hover:bg-red-600"
                         >
-                          Xóa
+                          Xóa hóa đơn
                         </button>
                       </>
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleMarkUnpaid(inv.id)}
-                        className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                        className="rounded-full border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/30"
                       >
                         Đánh dấu chưa thu
                       </button>
@@ -427,7 +467,7 @@ export function InvoiceListPage() {
                               type="button"
                               onClick={() => handleSendZalo(inv.id)}
                               disabled={sendZalo.isPending}
-                              className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
+                              className="text-sm font-medium text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
                             >
                               Gửi Zalo
                             </button>
@@ -437,7 +477,7 @@ export function InvoiceListPage() {
                               <button
                                 type="button"
                                 onClick={() => handleMarkPaid(inv.id)}
-                                className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                                className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                               >
                                 Đánh dấu đã thu
                               </button>
@@ -445,7 +485,7 @@ export function InvoiceListPage() {
                                 type="button"
                                 onClick={() => handleDelete(inv.id)}
                                 disabled={deleteInvoice.isPending}
-                                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                className="rounded-full bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50 dark:bg-red-500 dark:hover:bg-red-600"
                               >
                                 Xóa
                               </button>
@@ -454,7 +494,7 @@ export function InvoiceListPage() {
                             <button
                               type="button"
                               onClick={() => handleMarkUnpaid(inv.id)}
-                              className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                              className="rounded-full border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/30"
                             >
                               Đánh dấu chưa thu
                             </button>
