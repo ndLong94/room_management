@@ -143,17 +143,6 @@ export function InvoiceListPage() {
     if (page > totalPages && totalPages >= 1) setPage(totalPages)
   }, [totalPages, page])
 
-  const paidInvoices = sortedInvoices.filter((inv) => inv.status === 'PAID')
-  const unpaidInvoices = sortedInvoices.filter((inv) => inv.status === 'UNPAID')
-  const totalPaidAmount = paidInvoices.reduce(
-    (sum, inv) => sum + (typeof inv.totalAmount === 'string' ? parseFloat(inv.totalAmount) || 0 : Number(inv.totalAmount) || 0),
-    0
-  )
-  const totalUnpaidAmount = unpaidInvoices.reduce(
-    (sum, inv) => sum + (typeof inv.totalAmount === 'string' ? parseFloat(inv.totalAmount) || 0 : Number(inv.totalAmount) || 0),
-    0
-  )
-
   return (
     <div className="min-w-0">
       <div className="mb-4 flex flex-col gap-2 sm:mb-6">
