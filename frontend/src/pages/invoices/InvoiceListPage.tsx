@@ -476,7 +476,7 @@ export function InvoiceListPage() {
                                 disabled={deleteInvoice.isPending}
                                 className="rounded-full bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50 dark:bg-red-500 dark:hover:bg-red-600"
                               >
-                                Xóa
+                                Xóa hóa đơn
                               </button>
                             </>
                           ) : (
