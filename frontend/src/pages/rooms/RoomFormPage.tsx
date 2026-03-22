@@ -11,6 +11,7 @@ import { useCreateRoom, useRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useOccupants } from '@/hooks/useOccupants'
 import { uploadFile } from '@/api/files'
 import { createMeterReading } from '@/api/meterReadings'
+import { ProtectedDocAnchor } from '@/components/ProtectedDocAnchor'
 
 const schema = z.object({
   name: z.string().min(1, 'Vui lòng nhập tên phòng').max(255),
@@ -422,14 +423,9 @@ export function RoomFormPage({ mode }: Props) {
                 {uploadingContract ? 'Đang tải…' : 'Tải hợp đồng lên'}
               </button>
               {contractUrl ? (
-                <a
-                  href={contractUrl.startsWith('http') ? contractUrl : `${import.meta.env.VITE_API_URL ?? ''}${contractUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-sky-600 dark:text-sky-400"
-                >
+                <ProtectedDocAnchor href={contractUrl} className="text-sm text-sky-600 dark:text-sky-400">
                   Xem hợp đồng
-                </a>
+                </ProtectedDocAnchor>
               ) : null}
             </div>
           </div>

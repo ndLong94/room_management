@@ -6,7 +6,7 @@ import { useProperty } from '@/hooks/useProperties'
 import { useRoom } from '@/hooks/useRooms'
 import { useInvoices, useGenerateInvoice, useMarkInvoicePaid, useMarkInvoiceUnpaid, useDeleteInvoice } from '@/hooks/useInvoices'
 import { createMeterReading, getMeterReading } from '@/api/meterReadings'
-import { formatAmount, formatDate, getErrorMessageVi, isDueDateReached } from '@/utils'
+import { formatAmount, formatDate, formatMoney, getErrorMessageVi, isDueDateReached } from '@/utils'
 
 function prevMonthYear(month: number, year: number) {
   if (month === 1) return { month: 12, year: year - 1 }
@@ -100,9 +100,7 @@ export function RoomInvoicePage() {
         {
           onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }),
           onError: (err: unknown) => {
-            if ((err as { response?: { status?: number } })?.response?.status === 409) {
-              window.alert(getErrorMessageVi(err, 'Hóa đơn đã thanh toán, không thể chỉnh sửa.'))
-            }
+            toast.error(getErrorMessageVi(err, 'Không thể tạo hóa đơn'))
           },
         }
       )
@@ -111,15 +109,16 @@ export function RoomInvoicePage() {
     const hasSavedMeter = currentReading != null
     const hasFormMeter = elecReading.trim() !== '' && waterReading.trim() !== ''
     if (!hasSavedMeter && !hasFormMeter) {
-      window.alert(
-        'Chưa có chỉ số điện nước cho tháng này. Vui lòng nhập chỉ số điện và nước ở form "Chỉ số điện nước" phía trên (có thể nhập xong bấm Tạo hóa đơn, hệ thống sẽ tự lưu chỉ số).'
+      toast.error(
+        'Chưa có chỉ số điện nước cho tháng này. Vui lòng nhập chỉ số điện và nước ở form "Chỉ số điện nước" phía trên (có thể nhập xong bấm Tạo hóa đơn, hệ thống sẽ tự lưu chỉ số).',
+        { duration: 9000 }
       )
       return
     }
     const formCurrElec = parseFloat(elecReading) || 0
     const formCurrWater = parseFloat(waterReading) || 0
     if (hasFormMeter && (formCurrElec < minElec || formCurrWater < minWater)) {
-      window.alert('Chỉ số điện nước nhỏ hơn chỉ số lúc chuyển trạng thái hoặc chỉ số tháng trước. Vui lòng kiểm tra lại.')
+      toast.error('Chỉ số điện nước nhỏ hơn chỉ số lúc chuyển trạng thái hoặc chỉ số tháng trước. Vui lòng kiểm tra lại.')
       return
     }
     // Khi tạo hóa đơn (không fixed): luôn lưu chỉ số tháng đó nếu form có nhập (create/update)
@@ -144,9 +143,7 @@ export function RoomInvoicePage() {
           queryClient.invalidateQueries({ queryKey: ['invoices'] })
         },
         onError: (err: unknown) => {
-          if ((err as { response?: { status?: number } })?.response?.status === 409) {
-            window.alert(getErrorMessageVi(err, 'Hóa đơn đã thanh toán, không thể chỉnh sửa.'))
-          }
+          toast.error(getErrorMessageVi(err, 'Không thể tạo hóa đơn'))
         },
       }
     )
@@ -249,12 +246,12 @@ export function RoomInvoicePage() {
             </p>
             {prevReading ? (
               <p className="break-words text-sm text-slate-700 dark:text-slate-300">
-                Điện: <strong>{Number(prevReading.elecReading).toLocaleString()}</strong> kWh — Nước:{' '}
-                <strong>{Number(prevReading.waterReading).toLocaleString()}</strong> m³
+                Điện: <strong>{formatMoney(Number(prevReading.elecReading))}</strong> kWh — Nước:{' '}
+                <strong>{formatMoney(Number(prevReading.waterReading))}</strong> m³
               </p>
             ) : initialElec > 0 || initialWater > 0 ? (
               <p className="break-words text-sm text-slate-700 dark:text-slate-300">
-                Điện: <strong>{initialElec.toLocaleString()}</strong> kWh — Nước: <strong>{initialWater.toLocaleString()}</strong> m³
+                Điện: <strong>{formatMoney(initialElec)}</strong> kWh — Nước: <strong>{formatMoney(initialWater)}</strong> m³
                 <span className="ml-1 text-slate-500">(chỉ số khởi điểm phòng)</span>
               </p>
             ) : (
@@ -297,24 +294,24 @@ export function RoomInvoicePage() {
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">
               <p className="mb-2 text-xs font-medium text-emerald-800 dark:text-emerald-300">Tiêu thụ (tự tính)</p>
               <p className="text-sm text-emerald-900 dark:text-emerald-200">
-                Điện: <strong>{usageElec.toLocaleString()}</strong> kWh
+                Điện: <strong>{formatMoney(usageElec)}</strong> kWh
                 {elecPrice > 0 && (
                   <span className="text-emerald-700 dark:text-emerald-400">
-                    {' '}→ {costElec.toLocaleString()} VND
+                    {' '}→ {formatMoney(costElec)} VND
                   </span>
                 )}
               </p>
               <p className="text-sm text-emerald-900 dark:text-emerald-200">
-                Nước: <strong>{usageWater.toLocaleString()}</strong> m³
+                Nước: <strong>{formatMoney(usageWater)}</strong> m³
                 {waterPrice > 0 && (
                   <span className="text-emerald-700 dark:text-emerald-400">
-                    {' '}→ {costWater.toLocaleString()} VND
+                    {' '}→ {formatMoney(costWater)} VND
                   </span>
                 )}
               </p>
               {(elecPrice > 0 || waterPrice > 0) && (
                 <p className="mt-1 text-sm font-medium text-emerald-900 dark:text-emerald-200">
-                  Tổng dự tính tiền điện nước: {(costElec + costWater).toLocaleString()} VND
+                  Tổng dự tính tiền điện nước: {formatMoney(costElec + costWater)} VND
                 </p>
               )}
             </div>

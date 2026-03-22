@@ -1,6 +1,7 @@
 package com.management.security;
 
 import com.management.domain.entity.User;
+import com.management.domain.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -47,7 +48,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return user.getStatus() == UserStatus.ACTIVE;
     }
 
     public User getUser() {

@@ -2,15 +2,9 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useProperty } from '@/hooks/useProperties'
 import { useOccupant } from '@/hooks/useOccupants'
-
-const API_BASE = import.meta.env.VITE_API_URL ?? ''
+import { useAuthenticatedUploadUrl } from '@/hooks/useAuthenticatedUploadUrl'
 
 type DocKey = 'avatarUrl' | 'idFrontUrl' | 'idBackUrl' | 'tempResidenceUrl'
-
-function fullUrl(url: string | null | undefined): string {
-  if (!url) return ''
-  return url.startsWith('http') ? url : `${API_BASE.replace(/\/$/, '')}${url}`
-}
 
 const DOC_LABELS: Record<DocKey, string> = {
   avatarUrl: 'Hình cá nhân',
@@ -34,6 +28,10 @@ export function OccupantDetailPage() {
   const { data: property } = useProperty(propId)
   const { data: occupant, isLoading, error } = useOccupant(occId)
 
+  const currentPath = occupant?.[selectedDoc]
+  const isPdf = (currentPath ?? '').toLowerCase().includes('.pdf')
+  const { url: mediaUrl, loading: mediaLoading, error: mediaError } = useAuthenticatedUploadUrl(currentPath)
+
   if (propId == null || rId == null || occId == null) {
     return <p className="text-red-600">Đường dẫn không hợp lệ.</p>
   }
@@ -42,9 +40,6 @@ export function OccupantDetailPage() {
   if (error || !occupant) {
     return <p className="text-red-600">Không tìm thấy người ở.</p>
   }
-
-  const currentSrc = fullUrl(occupant[selectedDoc])
-  const isPdf = currentSrc.toLowerCase().includes('.pdf')
 
   return (
     <div className="min-w-0">
@@ -83,21 +78,27 @@ export function OccupantDetailPage() {
 
         <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
           <h2 className="mb-3 font-semibold">Hình ảnh</h2>
-          {currentSrc ? (
+          {currentPath ? (
             <div className="flex justify-center bg-slate-50 dark:bg-slate-800/50">
-              {isPdf ? (
-                <iframe
-                  src={currentSrc}
-                  title={DOC_LABELS[selectedDoc]}
-                  className="h-[28rem] w-full max-w-2xl rounded-lg border-0"
-                />
-              ) : (
-                <img
-                  src={currentSrc}
-                  alt={DOC_LABELS[selectedDoc]}
-                  className="max-h-96 rounded-lg object-contain shadow-md"
-                />
-              )}
+              {mediaLoading ? (
+                <p className="py-12 text-sm text-slate-500">Đang tải tài liệu…</p>
+              ) : mediaError ? (
+                <p className="py-12 text-sm text-red-600">Không tải được tài liệu.</p>
+              ) : mediaUrl ? (
+                isPdf ? (
+                  <iframe
+                    src={mediaUrl}
+                    title={DOC_LABELS[selectedDoc]}
+                    className="h-[28rem] w-full max-w-2xl rounded-lg border-0"
+                  />
+                ) : (
+                  <img
+                    src={mediaUrl}
+                    alt={DOC_LABELS[selectedDoc]}
+                    className="max-h-96 rounded-lg object-contain shadow-md"
+                  />
+                )
+              ) : null}
             </div>
           ) : (
             <p className="rounded-lg bg-slate-100 py-12 text-center text-sm text-slate-500 dark:bg-slate-700/50 dark:text-slate-400">

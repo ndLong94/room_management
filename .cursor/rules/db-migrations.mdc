@@ -1,0 +1,23 @@
+---
+description: Flyway migrations — location and naming
+globs: backend/src/main/resources/migration/**/*.sql
+alwaysApply: false
+---
+
+# Database migrations (Flyway)
+
+## Location
+
+- SQL migrations live under **`backend/src/main/resources/migration/`** (Flyway: `spring.flyway.locations: classpath:migration` in `application.yml`).
+- See **`migration/README.md`** in that folder for the current next-version note and team rules.
+
+## Naming
+
+- Pattern: **`V{version}__{description}.sql`** (e.g. `V25__add_column_to_room.sql`).
+- Use the **next version number** after the highest existing `V*.sql` in that folder (update `README.md` when you add a migration if it documents the latest number).
+- Description: lowercase, words separated by underscores, short and specific.
+
+## Content
+
+- Make migrations **idempotent only if** the project already uses that pattern; otherwise prefer straightforward forward-only DDL/DML consistent with existing scripts.
+- Keep changes scoped to one logical change per file when possible.

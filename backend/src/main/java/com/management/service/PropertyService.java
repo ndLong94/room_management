@@ -1,5 +1,6 @@
 package com.management.service;
 
+import com.management.domain.PropertyPricingDefaults;
 import com.management.domain.entity.Property;
 import com.management.domain.enums.RoomStatus;
 import com.management.dto.request.CreatePropertyRequest;
@@ -10,6 +11,7 @@ import com.management.repository.PricingSettingRepository;
 import com.management.repository.PropertyRepository;
 import com.management.repository.RoomRepository;
 import com.management.security.UserPrincipal;
+import com.management.util.Text;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,9 +24,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PropertyService {
-
-    private static final BigDecimal DEFAULT_ELEC = new BigDecimal("3500");
-    private static final BigDecimal DEFAULT_WATER = new BigDecimal("15000");
 
     private final PropertyRepository propertyRepository;
     private final PricingSettingRepository pricingSettingRepository;
@@ -46,20 +45,26 @@ public class PropertyService {
     }
 
     @Transactional
-    public PropertyResponse create(CreatePropertyRequest request) {
+    public PropertyResponse create(CreatePropertyRequest createPropertyRequest) {
         Long userId = currentUserId();
-        BigDecimal elec = request.getElecPrice();
-        BigDecimal water = request.getWaterPrice();
+        BigDecimal elec = createPropertyRequest.getElecPrice();
+        BigDecimal water = createPropertyRequest.getWaterPrice();
         if (elec == null || water == null) {
             var global = pricingSettingRepository.findByOwnerUserId(userId);
-            if (elec == null) elec = global.map(P -> P.getElecPrice() != null ? P.getElecPrice() : DEFAULT_ELEC).orElse(DEFAULT_ELEC);
-            if (water == null) water = global.map(P -> P.getWaterPrice() != null ? P.getWaterPrice() : DEFAULT_WATER).orElse(DEFAULT_WATER);
+            if (elec == null) {
+                elec = global.map(P -> P.getElecPrice() != null ? P.getElecPrice() : PropertyPricingDefaults.DEFAULT_ELEC_PRICE)
+                        .orElse(PropertyPricingDefaults.DEFAULT_ELEC_PRICE);
+            }
+            if (water == null) {
+                water = global.map(P -> P.getWaterPrice() != null ? P.getWaterPrice() : PropertyPricingDefaults.DEFAULT_WATER_PRICE)
+                        .orElse(PropertyPricingDefaults.DEFAULT_WATER_PRICE);
+            }
         }
         Property property = Property.builder()
                 .ownerUserId(userId)
-                .name(request.getName().trim())
-                .address(request.getAddress() != null ? request.getAddress().trim() : null)
-                .note(request.getNote())
+                .name(createPropertyRequest.getName().trim())
+                .address(Text.trimToNull(createPropertyRequest.getAddress()))
+                .note(createPropertyRequest.getNote())
                 .elecPrice(elec)
                 .waterPrice(water)
                 .build();
@@ -68,15 +73,15 @@ public class PropertyService {
     }
 
     @Transactional
-    public PropertyResponse update(Long id, UpdatePropertyRequest request) {
+    public PropertyResponse update(Long id, UpdatePropertyRequest updatePropertyRequest) {
         Long userId = currentUserId();
         Property property = propertyRepository.findByIdAndOwnerUserId(id, userId)
                 .orElseThrow(() -> new PropertyNotFoundException("Property not found: " + id));
-        property.setName(request.getName().trim());
-        property.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
-        property.setNote(request.getNote());
-        if (request.getElecPrice() != null) property.setElecPrice(request.getElecPrice());
-        if (request.getWaterPrice() != null) property.setWaterPrice(request.getWaterPrice());
+        property.setName(updatePropertyRequest.getName().trim());
+        property.setAddress(Text.trimToNull(updatePropertyRequest.getAddress()));
+        property.setNote(updatePropertyRequest.getNote());
+        if (updatePropertyRequest.getElecPrice() != null) property.setElecPrice(updatePropertyRequest.getElecPrice());
+        if (updatePropertyRequest.getWaterPrice() != null) property.setWaterPrice(updatePropertyRequest.getWaterPrice());
         property = propertyRepository.save(property);
         return toResponse(property);
     }

@@ -13,6 +13,7 @@ import com.management.repository.OccupantRepository;
 import com.management.repository.PropertyRepository;
 import com.management.repository.RoomRepository;
 import com.management.security.UserPrincipal;
+import com.management.util.Text;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ public class OccupantService {
     }
 
     @Transactional
-    public OccupantResponse create(Long propertyId, Long roomId, CreateOccupantRequest request) {
+    public OccupantResponse create(Long propertyId, Long roomId, CreateOccupantRequest createOccupantRequest) {
         ensureRoomOwnedByCurrentUser(propertyId, roomId);
         Room room = roomRepository.findByIdAndPropertyId(roomId, propertyId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found: " + roomId));
@@ -47,18 +48,18 @@ public class OccupantService {
         }
         Occupant occupant = Occupant.builder()
                 .roomId(roomId)
-                .fullName(request.getFullName().trim())
-                .phone(request.getPhone() != null ? request.getPhone().trim() : null)
-                .idNumber(request.getIdNumber() != null ? request.getIdNumber().trim() : null)
-                .idType(request.getIdType() != null ? request.getIdType().trim() : null)
-                .address(request.getAddress() != null ? request.getAddress().trim() : null)
-                .dob(request.getDob())
-                .avatarUrl(request.getAvatarUrl() != null ? request.getAvatarUrl().trim() : null)
-                .idFrontUrl(request.getIdFrontUrl() != null ? request.getIdFrontUrl().trim() : null)
-                .idBackUrl(request.getIdBackUrl() != null ? request.getIdBackUrl().trim() : null)
-                .tempResidenceUrl(request.getTempResidenceUrl() != null ? request.getTempResidenceUrl().trim() : null)
-                .note(request.getNote())
-                .zaloUserId(request.getZaloUserId() != null ? request.getZaloUserId().trim() : null)
+                .fullName(createOccupantRequest.getFullName().trim())
+                .phone(Text.trimToNull(createOccupantRequest.getPhone()))
+                .idNumber(Text.trimToNull(createOccupantRequest.getIdNumber()))
+                .idType(Text.trimToNull(createOccupantRequest.getIdType()))
+                .address(Text.trimToNull(createOccupantRequest.getAddress()))
+                .dob(createOccupantRequest.getDob())
+                .avatarUrl(Text.trimToNull(createOccupantRequest.getAvatarUrl()))
+                .idFrontUrl(Text.trimToNull(createOccupantRequest.getIdFrontUrl()))
+                .idBackUrl(Text.trimToNull(createOccupantRequest.getIdBackUrl()))
+                .tempResidenceUrl(Text.trimToNull(createOccupantRequest.getTempResidenceUrl()))
+                .note(createOccupantRequest.getNote())
+                .zaloUserId(Text.trimToNull(createOccupantRequest.getZaloUserId()))
                 .build();
         occupant = occupantRepository.save(occupant);
         return toResponse(occupant);
@@ -72,22 +73,22 @@ public class OccupantService {
     }
 
     @Transactional
-    public OccupantResponse update(Long id, UpdateOccupantRequest request) {
+    public OccupantResponse update(Long id, UpdateOccupantRequest updateOccupantRequest) {
         long userId = currentUserId();
         Occupant occupant = occupantRepository.findByIdAndOwnerUserId(id, userId)
                 .orElseThrow(() -> new OccupantNotFoundException("Occupant not found: " + id));
-        occupant.setFullName(request.getFullName().trim());
-        occupant.setPhone(request.getPhone() != null ? request.getPhone().trim() : null);
-        occupant.setIdNumber(request.getIdNumber() != null ? request.getIdNumber().trim() : null);
-        occupant.setIdType(request.getIdType() != null ? request.getIdType().trim() : null);
-        occupant.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
-        occupant.setDob(request.getDob());
-        occupant.setAvatarUrl(request.getAvatarUrl() != null ? request.getAvatarUrl().trim() : null);
-        occupant.setIdFrontUrl(request.getIdFrontUrl() != null ? request.getIdFrontUrl().trim() : null);
-        occupant.setIdBackUrl(request.getIdBackUrl() != null ? request.getIdBackUrl().trim() : null);
-        occupant.setTempResidenceUrl(request.getTempResidenceUrl() != null ? request.getTempResidenceUrl().trim() : null);
-        occupant.setNote(request.getNote());
-        occupant.setZaloUserId(request.getZaloUserId() != null ? request.getZaloUserId().trim() : null);
+        occupant.setFullName(updateOccupantRequest.getFullName().trim());
+        occupant.setPhone(Text.trimToNull(updateOccupantRequest.getPhone()));
+        occupant.setIdNumber(Text.trimToNull(updateOccupantRequest.getIdNumber()));
+        occupant.setIdType(Text.trimToNull(updateOccupantRequest.getIdType()));
+        occupant.setAddress(Text.trimToNull(updateOccupantRequest.getAddress()));
+        occupant.setDob(updateOccupantRequest.getDob());
+        occupant.setAvatarUrl(Text.trimToNull(updateOccupantRequest.getAvatarUrl()));
+        occupant.setIdFrontUrl(Text.trimToNull(updateOccupantRequest.getIdFrontUrl()));
+        occupant.setIdBackUrl(Text.trimToNull(updateOccupantRequest.getIdBackUrl()));
+        occupant.setTempResidenceUrl(Text.trimToNull(updateOccupantRequest.getTempResidenceUrl()));
+        occupant.setNote(updateOccupantRequest.getNote());
+        occupant.setZaloUserId(Text.trimToNull(updateOccupantRequest.getZaloUserId()));
         occupant = occupantRepository.save(occupant);
         return toResponse(occupant);
     }

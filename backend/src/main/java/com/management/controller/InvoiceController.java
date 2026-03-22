@@ -7,15 +7,19 @@ import com.management.service.InvoiceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Invoices", description = "Generate and manage invoices")
 public class InvoiceController {
 
@@ -26,17 +30,17 @@ public class InvoiceController {
     public ResponseEntity<InvoiceResponse> generate(
             @PathVariable Long propertyId,
             @PathVariable Long roomId,
-            @RequestParam int month,
-            @RequestParam int year) {
-        InvoiceResponse created = invoiceService.generate(roomId, month, year);
+            @RequestParam @Min(1) @Max(12) int month,
+            @RequestParam @Min(2000) @Max(2100) int year) {
+        InvoiceResponse created = invoiceService.generate(propertyId, roomId, month, year);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping("/api/invoices")
     @Operation(summary = "List invoices with optional filters (month, year, propertyId, status). Sorted by date desc.")
     public ResponseEntity<List<InvoiceResponse>> list(
-            @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) @Min(1) @Max(12) Integer month,
+            @RequestParam(required = false) @Min(2000) @Max(2100) Integer year,
             @RequestParam(required = false) Long propertyId,
             @RequestParam(required = false) InvoiceStatus status) {
         return ResponseEntity.ok(invoiceService.list(month, year, propertyId, status));

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import {
   createProperty,
   deleteProperty,
@@ -36,8 +37,8 @@ export function useCreateProperty() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
       toast.success('Đã thêm bất động sản')
     },
-    onError: () => {
-      toast.error('Không thể thêm bất động sản')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể thêm bất động sản'))
     },
   })
 }
@@ -52,8 +53,8 @@ export function useUpdateProperty() {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, id] })
       toast.success('Đã cập nhật bất động sản')
     },
-    onError: () => {
-      toast.error('Không thể cập nhật bất động sản')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể cập nhật bất động sản'))
     },
   })
 }
@@ -66,8 +67,8 @@ export function useDeleteProperty() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
       toast.success('Đã xóa bất động sản')
     },
-    onError: () => {
-      toast.error('Không thể xóa bất động sản')
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể xóa bất động sản'))
     },
   })
 }

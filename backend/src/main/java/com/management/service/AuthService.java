@@ -9,7 +9,9 @@ import com.management.dto.request.RegisterRequest;
 import com.management.dto.request.UpdateProfileRequest;
 import com.management.dto.response.AuthResponse;
 import com.management.dto.response.UserResponse;
-import com.management.exception.AuthException;
+import com.management.exception.ConflictException;
+import com.management.exception.ForbiddenOperationException;
+import com.management.exception.UserNotFoundException;
 import com.management.repository.UserRepository;
 import com.management.security.JwtUtil;
 import com.management.security.UserPrincipal;
@@ -33,48 +35,48 @@ public class AuthService {
     private final OAuthVerificationService oAuthVerificationService;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
-        String username = request.getUsername().trim().toLowerCase();
-        String email = request.getEmail().trim().toLowerCase();
+    public AuthResponse register(RegisterRequest registerRequest) {
+        String username = registerRequest.getUsername().trim().toLowerCase();
+        String email = registerRequest.getEmail().trim().toLowerCase();
         if (userRepository.existsByUsernameIgnoreCase(username)) {
-            throw new AuthException("Tên đăng nhập đã tồn tại.");
+            throw new ConflictException("Tên đăng nhập đã tồn tại.");
         }
         if (userRepository.existsByEmailIgnoreCase(email)) {
-            throw new AuthException("Email đã được đăng ký.");
+            throw new ConflictException("Email đã được đăng ký.");
         }
         User user = User.builder()
                 .username(username)
                 .email(email)
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .status(UserStatus.DRAFT)
                 .build();
         user = userRepository.save(user);
         return AuthResponse.registered(toUserResponse(user));
     }
 
-    public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByUsernameIgnoreCase(request.getUsername().trim())
+    public AuthResponse login(LoginRequest loginRequest) {
+        User user = userRepository.findByUsernameIgnoreCase(loginRequest.getUsername().trim())
                 .orElseThrow(() -> new BadCredentialsException("Tên đăng nhập hoặc mật khẩu không đúng."));
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new BadCredentialsException("Tên đăng nhập hoặc mật khẩu không đúng.");
         }
         if (user.getStatus() != UserStatus.ACTIVE) {
             if (user.getStatus() == UserStatus.DRAFT) {
-                throw new AuthException("Tài khoản chưa được duyệt. Vui lòng chờ admin phê duyệt.");
+                throw new ForbiddenOperationException("Tài khoản chưa được duyệt. Vui lòng chờ admin phê duyệt.");
             }
-            throw new AuthException("Tài khoản đã bị vô hiệu hóa.");
+            throw new ForbiddenOperationException("Tài khoản đã bị vô hiệu hóa.");
         }
         String token = jwtUtil.generateToken(user.getUsername());
         return AuthResponse.of(token, toUserResponse(user));
     }
 
-    public AuthResponse loginWithGoogle(GoogleLoginRequest request) {
-        OAuthUserInfo info = oAuthVerificationService.verifyGoogleToken(request.getCredential());
+    public AuthResponse loginWithGoogle(GoogleLoginRequest googleLoginRequest) {
+        OAuthUserInfo info = oAuthVerificationService.verifyGoogleToken(googleLoginRequest.getCredential());
         return findOrCreateOAuthUser(info.email(), info.name());
     }
 
-    public AuthResponse loginWithFacebook(FacebookLoginRequest request) {
-        OAuthUserInfo info = oAuthVerificationService.verifyFacebookToken(request.getAccessToken());
+    public AuthResponse loginWithFacebook(FacebookLoginRequest facebookLoginRequest) {
+        OAuthUserInfo info = oAuthVerificationService.verifyFacebookToken(facebookLoginRequest.getAccessToken());
         return findOrCreateOAuthUser(info.email(), info.name());
     }
 
@@ -84,9 +86,9 @@ public class AuthService {
         if (user != null) {
             if (user.getStatus() != UserStatus.ACTIVE) {
                 if (user.getStatus() == UserStatus.DRAFT) {
-                    throw new AuthException("Tài khoản chưa được duyệt. Vui lòng chờ admin phê duyệt.");
+                    throw new ForbiddenOperationException("Tài khoản chưa được duyệt. Vui lòng chờ admin phê duyệt.");
                 }
-                throw new AuthException("Tài khoản đã bị vô hiệu hóa.");
+                throw new ForbiddenOperationException("Tài khoản đã bị vô hiệu hóa.");
             }
         } else {
             String username = emailLower;
@@ -115,13 +117,13 @@ public class AuthService {
     }
 
     @Transactional
-    public UserResponse updateProfile(UpdateProfileRequest request) {
+    public UserResponse updateProfile(UpdateProfileRequest updateProfileRequest) {
         UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User user = userRepository.findById(principal.getUser().getId())
-                .orElseThrow(() -> new AuthException("User not found"));
-        String newEmail = request.getEmail().trim().toLowerCase();
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        String newEmail = updateProfileRequest.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmailIgnoreCaseAndIdNot(newEmail, user.getId())) {
-            throw new AuthException("Email đã được sử dụng bởi tài khoản khác");
+            throw new ConflictException("Email đã được sử dụng bởi tài khoản khác");
         }
         user.setEmail(newEmail);
         user = userRepository.save(user);

@@ -1,9 +1,11 @@
 package com.management.batch.config;
 
 import com.management.batch.InvoiceGenerateItemWriter;
+import com.management.batch.InvoiceGenerationStepListener;
 import com.management.batch.InvoiceJobItem;
 import com.management.batch.InvoiceJobItemReader;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -24,6 +26,10 @@ public class InvoiceJobConfig {
     private final PlatformTransactionManager transactionManager;
     private final InvoiceJobItemReader invoiceJobItemReader;
     private final InvoiceGenerateItemWriter invoiceGenerateItemWriter;
+    private final InvoiceGenerationStepListener invoiceGenerationStepListener;
+
+    @Value("${app.batch.invoice-chunk-size:10}")
+    private int invoiceChunkSize;
 
     @Bean
     public Job invoiceGenerationJob() {
@@ -35,9 +41,10 @@ public class InvoiceJobConfig {
     @Bean
     public Step invoiceGenerationStep() {
         return new StepBuilder("invoiceGenerationStep", jobRepository)
-                .<InvoiceJobItem, InvoiceJobItem>chunk(1, transactionManager)
+                .<InvoiceJobItem, InvoiceJobItem>chunk(invoiceChunkSize, transactionManager)
                 .reader(invoiceJobItemReader)
                 .writer(invoiceGenerateItemWriter)
+                .listener(invoiceGenerationStepListener)
                 .build();
     }
 }

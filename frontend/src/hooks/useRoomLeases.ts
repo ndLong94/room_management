@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import {
   createRoomLease,
   endRoomLease,
@@ -47,7 +48,7 @@ export function useCreateRoomLease(propertyId: number, roomId: number) {
       queryClient.invalidateQueries({ queryKey: activeLeaseKey(propertyId, roomId) })
       toast.success('Đã tạo hợp đồng thuê')
     },
-    onError: () => toast.error('Không thể tạo hợp đồng thuê'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể tạo hợp đồng thuê')),
   })
 }
 
@@ -66,7 +67,7 @@ export function useUpdateRoomLease(propertyId: number, roomId: number) {
       queryClient.invalidateQueries({ queryKey: activeLeaseKey(propertyId, roomId) })
       toast.success('Đã cập nhật hợp đồng thuê')
     },
-    onError: () => toast.error('Không thể cập nhật hợp đồng thuê'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể cập nhật hợp đồng thuê')),
   })
 }
 
@@ -79,6 +80,6 @@ export function useEndRoomLease(propertyId: number, roomId: number) {
       queryClient.invalidateQueries({ queryKey: activeLeaseKey(propertyId, roomId) })
       toast.success('Đã kết thúc hợp đồng thuê')
     },
-    onError: () => toast.error('Không thể kết thúc hợp đồng thuê'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể kết thúc hợp đồng thuê')),
   })
 }

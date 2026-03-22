@@ -26,12 +26,12 @@ public class SecurityConfig {
             "/api/auth/login",
             "/api/auth/google",
             "/api/auth/facebook",
+            "/api/health",
             "/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
             "/actuator/health",
-            "/uploads/**",
             "/error"
     };
 

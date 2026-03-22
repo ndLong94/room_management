@@ -92,7 +92,9 @@ public class ZaloNotificationService {
      */
     public void sendMessage(String zaloUserId, String message) {
         if (!zaloEnabled || accessToken == null || accessToken.isBlank()) {
-            log.warn("Zalo chưa bật hoặc chưa cấu hình access token. Bỏ qua gửi tin.");
+            // Expected in dev / when OA is not configured; caller still gets IllegalStateException.
+            log.debug("Skipping Zalo send: zaloEnabled={} accessTokenBlank={}", zaloEnabled,
+                    accessToken == null || accessToken.isBlank());
             throw new IllegalStateException("Zalo chưa được cấu hình. Đặt ZALO_ENABLED=true và ZALO_ACCESS_TOKEN trong .env.");
         }
         String url = ZALO_SEND_MESSAGE_URL + "?access_token=" + accessToken;
@@ -109,9 +111,9 @@ public class ZaloNotificationService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
         if (!response.getStatusCode().is2xxSuccessful()) {
-            log.error("Zalo API lỗi: {} - {}", response.getStatusCode(), response.getBody());
+            log.error("Zalo API error zaloUserId={} status={} body={}", zaloUserId, response.getStatusCode(), response.getBody());
             throw new IllegalStateException("Gửi Zalo thất bại: " + response.getBody());
         }
-        log.info("Đã gửi tin Zalo cho user {}", zaloUserId);
+        log.info("Đã gửi tin Zalo cho zaloUserId={}", zaloUserId);
     }
 }

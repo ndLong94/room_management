@@ -5,8 +5,8 @@ import { useProperty } from '@/hooks/useProperties'
 import { useRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useOccupants, useCreateOccupant, useUpdateOccupant, useDeleteOccupant } from '@/hooks/useOccupants'
 import { uploadFile } from '@/api/files'
-import { formatDateVietnamese } from '@/utils/format'
-import { getErrorMessageVi } from '@/utils'
+import { ProtectedDocAnchor } from '@/components/ProtectedDocAnchor'
+import { formatDateVietnamese, formatMoney, getErrorMessageVi } from '@/utils'
 import type { Occupant } from '@/types/occupant'
 
 const ENABLE_ZALO = import.meta.env.VITE_ENABLE_ZALO === 'true'
@@ -129,8 +129,8 @@ export function OccupantsPage() {
             toast.success('Đã tải lên')
             setUploading(null)
           },
-          onError: () => {
-            toast.error('Tải lên thất bại. Thử lại.')
+          onError: (err: unknown) => {
+            toast.error(getErrorMessageVi(err, 'Tải lên thất bại. Thử lại.'))
             setUploading(null)
           },
         }
@@ -205,7 +205,7 @@ export function OccupantsPage() {
                   {room.depositPaid ? '✓ Đã cọc' : '○ Chưa cọc'}
                 </span>
                 <span className="text-sm text-slate-600 dark:text-slate-300">
-                  Tiền cọc: {typeof room.depositAmount === 'number' ? room.depositAmount.toLocaleString() : room.depositAmount} đ
+                  Tiền cọc: {formatMoney(room.depositAmount)} đ
                 </span>
                 {room.depositDate && (
                   <span className="text-sm text-slate-500 dark:text-slate-400">
@@ -430,14 +430,9 @@ export function OccupantsPage() {
                             {isUploading ? '…' : uploadLabels[field]}
                           </button>
                           {url ? (
-                            <a
-                              href={url.startsWith('http') ? url : `${import.meta.env.VITE_API_URL ?? ''}${url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-sky-600 dark:text-sky-400"
-                            >
+                            <ProtectedDocAnchor href={url} className="text-xs text-sky-600 dark:text-sky-400">
                               ✓
-                            </a>
+                            </ProtectedDocAnchor>
                           ) : null}
                         </span>
                       )
@@ -609,15 +604,13 @@ export function OccupantsPage() {
                                   {isUploading ? '…' : uploadLabels[field]}
                                 </button>
                                 {url ? (
-                                  <a
-                                    href={url.startsWith('http') ? url : `${import.meta.env.VITE_API_URL ?? ''}${url}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                  <ProtectedDocAnchor
+                                    href={url}
                                     className="truncate text-xs text-sky-600 dark:text-sky-400"
                                     title="Xem"
                                   >
                                     ✓
-                                  </a>
+                                  </ProtectedDocAnchor>
                                 ) : null}
                               </span>
                             )

@@ -1,0 +1,54 @@
+---
+description: Reuse API client, hooks, and shared frontend utilities
+globs: frontend/**/*.tsx, frontend/**/*.ts
+alwaysApply: false
+---
+
+# Reuse and utilities (frontend)
+
+## Rule: reuse before adding
+
+Before adding a **new axios instance**, **duplicate API wrapper**, **email regex**, **date formatter**, or **error-to-message mapping**:
+
+1. Check **`src/lib/api.ts`** — single HTTP client (base URL, auth header, 401 handling).
+2. Check **`src/utils/`** — `format.ts`, `errors.ts`, and barrel **`src/utils/index.ts`**.
+3. Check **`src/hooks/`** — existing `useXxx` hooks that already wrap React Query for a resource.
+4. Check **`src/api/`** — feature modules that already call the backend (`auth.ts`, `properties.ts`, etc.).
+
+## HTTP and auth
+
+- Use the shared **`api`** instance from **`src/lib/api.ts`** for all JSON calls. Do not create parallel axios instances for normal CRUD.
+- For **FormData** uploads, the client already clears `Content-Type` so the browser sets the boundary—follow existing `api/files` or upload call patterns.
+
+## Shared UI formatting and errors
+
+| Need | Reuse |
+|------|--------|
+| Money / amounts / locale numbers | `formatMoney`, `formatAmount` from **`src/utils/format.ts`** |
+| ISO `yyyy-MM-dd` → display | `formatDate`, `formatDateVietnamese` |
+| Due date vs today | `isDueDateReached` |
+| API error → Vietnamese toast/message | **`getErrorMessageVi`** from **`src/utils/errors.ts`** |
+
+Export new shared formatters from **`src/utils/index.ts`** when more than one screen needs them.
+
+## Data loading
+
+- Prefer **TanStack Query** via existing **hooks** in `src/hooks/` (`useProperties`, `useInvoices`, …): same cache keys, loading, and invalidation behavior.
+- New resource: add **`src/api/<feature>.ts`** (thin functions using `api`) + **`src/hooks/use<Feature>.ts`** + types under **`src/types/`**, matching neighboring features.
+
+## Forms and validation
+
+- Prefer **react-hook-form** + **zod** (or existing patterns on similar pages) instead of one-off validation in every submit handler.
+- Align client validation with backend DTO rules (required fields, lengths) to reduce round-trips.
+
+## Feedback and navigation
+
+- Use **react-hot-toast** (or whatever the page already uses) consistently—do not mix `alert()` for the same class of feedback.
+- Use **React Router** (`useNavigate`, route components) consistently with **`src/routes/`** and **`App.tsx`**.
+
+## Summary
+
+- **HTTP** → `src/lib/api.ts`
+- **Formatting & API error text** → `src/utils/format.ts`, `src/utils/errors.ts`
+- **Server state** → hooks in `src/hooks/` + `src/api/`
+- **Types** → `src/types/` for shared shapes

@@ -1,0 +1,11 @@
+---
+description: Logging levels and message style
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Logging
+
+- Use **debug** for normal diagnostic messages, expected "not found" paths, and skipped work. Avoid **warn** for those cases unless the codebase consistently uses warn for a specific scenario.
+- Use **error** for actual failures; include the exception as the last argument when logging an exception: `log.error("... context id={}", id, e)`.
+- Prefer messages that include **identifiers** (entity id, request id) so logs are traceable: e.g. `"invoiceId={} not found", invoiceId`.

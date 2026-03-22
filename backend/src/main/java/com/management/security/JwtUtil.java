@@ -14,6 +14,11 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+/**
+ * HS256 JWT access tokens: {@link #generateToken(String)} for login/register flows,
+ * {@link #validateAndGetUsername(String)} in {@link JwtAuthenticationFilter}. Configuration:
+ * {@code app.jwt.secret}, {@code app.jwt.expiration-ms}.
+ */
 @Component
 @Slf4j
 public class JwtUtil {

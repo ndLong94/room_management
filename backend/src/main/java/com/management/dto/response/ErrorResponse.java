@@ -18,10 +18,10 @@ public class ErrorResponse {
     String error;
     String message;
     String path;
-    List<FieldErrorDto> fieldErrors;
+    List<FieldError> fieldErrors;
 
     @Value
-    public static class FieldErrorDto {
+    public static class FieldError {
         String field;
         String message;
         Object rejectedValue;

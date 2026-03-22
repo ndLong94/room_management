@@ -4,6 +4,7 @@ import com.management.domain.entity.OccupancyPeriod;
 import com.management.domain.entity.OccupancyPeriodOccupant;
 import com.management.dto.response.OccupancyPeriodOccupantResponse;
 import com.management.dto.response.OccupancyPeriodResponse;
+import com.management.exception.OccupancyPeriodNotFoundException;
 import com.management.exception.PropertyNotFoundException;
 import com.management.exception.RoomNotFoundException;
 import com.management.repository.OccupancyPeriodOccupantRepository;
@@ -37,21 +38,15 @@ public class OccupancyPeriodService {
 
     public OccupancyPeriodResponse getPeriod(Long propertyId, Long roomId, Long periodId) {
         ensurePropertyAndRoomOwned(propertyId, roomId);
-        OccupancyPeriod period = occupancyPeriodRepository.findById(periodId)
-                .orElseThrow(() -> new RuntimeException("Period not found: " + periodId));
-        if (!period.getRoomId().equals(roomId) || !period.getPropertyId().equals(propertyId)) {
-            throw new RuntimeException("Period not found for this room");
-        }
+        OccupancyPeriod period = occupancyPeriodRepository.findByIdAndRoomIdAndPropertyId(periodId, roomId, propertyId)
+                .orElseThrow(() -> new OccupancyPeriodNotFoundException("Occupancy period not found: " + periodId));
         return toPeriodResponse(period);
     }
 
     public List<OccupancyPeriodOccupantResponse> listOccupantsByPeriod(Long propertyId, Long roomId, Long periodId) {
         ensurePropertyAndRoomOwned(propertyId, roomId);
-        OccupancyPeriod period = occupancyPeriodRepository.findById(periodId)
-                .orElseThrow(() -> new RuntimeException("Period not found: " + periodId));
-        if (!period.getRoomId().equals(roomId) || !period.getPropertyId().equals(propertyId)) {
-            throw new RuntimeException("Period not found for this room");
-        }
+        OccupancyPeriod period = occupancyPeriodRepository.findByIdAndRoomIdAndPropertyId(periodId, roomId, propertyId)
+                .orElseThrow(() -> new OccupancyPeriodNotFoundException("Occupancy period not found: " + periodId));
         return occupancyPeriodOccupantRepository.findByPeriodIdOrderByCreatedAtAsc(periodId)
                 .stream()
                 .map(this::toPeriodOccupantResponse)

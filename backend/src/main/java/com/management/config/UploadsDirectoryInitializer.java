@@ -42,7 +42,7 @@ public class UploadsDirectoryInitializer {
                     // Windows doesn't support PosixFilePermissions, that's OK
                     log.debug("PosixFilePermissions not supported (likely Windows), skipping");
                 } catch (Exception e) {
-                    log.warn("Could not set permissions on uploads directory: {}", e.getMessage());
+                    log.warn("Could not set permissions on uploads directory: {}", path, e);
                 }
 
                 // Verify directory is readable and writable
@@ -58,6 +58,7 @@ public class UploadsDirectoryInitializer {
                 } else if (!readable) {
                     log.error("Uploads directory is not readable: {}", path);
                 } else if (!writable) {
+                    // Operational degradation: uploads may fail; keep at warn for visibility.
                     log.warn("Uploads directory is not writable: {} (files can still be read)", path);
                 }
             } catch (Exception e) {

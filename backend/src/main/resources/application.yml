@@ -26,6 +26,15 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 app:
   jwt:
     secret: ${JWT_SECRET:your-256-bit-secret-change-in-production-must-be-at-least-32-chars}
@@ -44,6 +53,11 @@ app:
     access-token: ${ZALO_ACCESS_TOKEN:}
     enabled: ${ZALO_ENABLED:false}
   base-url: ${APP_BASE_URL:http://localhost:5173}
+  batch:
+    invoice-cron: ${APP_BATCH_INVOICE_CRON:0 0 6 * * ?}
+    invoice-chunk-size: ${APP_BATCH_INVOICE_CHUNK_SIZE:10}
+  feedback:
+    max-pending-per-user: ${APP_FEEDBACK_MAX_PENDING:2}
 
 springdoc:
   api-docs:

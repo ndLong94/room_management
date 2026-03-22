@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { getHealth } from '@/api/health'
 
 export function HomePage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['health'],
-    queryFn: async () => {
-      const res = await api.get<{ status: string }>('/api/health')
-      return res.data
-    },
+    queryFn: () => getHealth(),
   })
 
   return (

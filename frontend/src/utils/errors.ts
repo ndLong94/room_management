@@ -1,9 +1,14 @@
+import axios from 'axios'
+import type { ApiErrorResponse } from '@/types/error'
+
 /**
  * Chuẩn hóa thông báo lỗi từ API sang tiếng Việt để hiển thị popup/toast.
+ * Nguồn: {@link parseApiError} (body JSON từ backend), ưu tiên {@link ApiErrorResponse.message}
+ * và {@link ApiErrorResponse.fieldErrors} khi message là câu tổng quát.
  */
 const EN_TO_VI: Record<string, string> = {
   'Bad credentials': 'Tên đăng nhập hoặc mật khẩu không đúng.',
-  'Unauthorized': 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.',
+  Unauthorized: 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.',
   'Token has expired.': 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
   'Access denied.': 'Bạn không có quyền thực hiện thao tác này.',
   'Resource not found.': 'Không tìm thấy tài nguyên.',
@@ -20,8 +25,8 @@ const EN_TO_VI: Record<string, string> = {
   'Invoice not found': 'Không tìm thấy hóa đơn.',
   'Occupant not found': 'Không tìm thấy người ở.',
   'Period not found for this room': 'Không tìm thấy kỳ cho thuê.',
+  'Occupancy period not found': 'Không tìm thấy kỳ cho thuê.',
   'File is required': 'Vui lòng chọn file.',
-  'File size must be at most 10 MB': 'Kích thước file tối đa 10 MB.',
   'Allowed types: jpg, jpeg, png, gif, webp, pdf, doc, docx': 'Chỉ chấp nhận file: jpg, jpeg, png, gif, webp, pdf, doc, docx.',
   'Full name is required': 'Vui lòng nhập họ tên.',
   'Name is required': 'Vui lòng nhập tên.',
@@ -35,23 +40,98 @@ const EN_TO_VI: Record<string, string> = {
   'Authentication required.': 'Vui lòng đăng nhập.',
 }
 
-const DEFAULT_VI = 'Có lỗi xảy ra. Vui lòng thử lại.'
+/** Prefixes (backend may append ": id") */
+const EN_PREFIX_TO_VI: Array<{ prefix: string; vi: string }> = [
+  { prefix: 'File size must be at most', vi: 'Kích thước file vượt quá giới hạn cho phép.' },
+  { prefix: 'Occupancy period not found', vi: 'Không tìm thấy kỳ cho thuê.' },
+]
+
+const GENERIC_BODY_MESSAGES = new Set([
+  'Một hoặc nhiều trường không hợp lệ.',
+  'Một hoặc nhiều tham số không hợp lệ.',
+])
+
+export const DEFAULT_API_ERROR_VI = 'Có lỗi xảy ra. Vui lòng thử lại.'
+
+const NETWORK_VI = 'Không kết nối được máy chủ. Vui lòng thử lại.'
+
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return data !== null && typeof data === 'object' && !Array.isArray(data)
+}
 
 /**
- * Lấy thông báo lỗi từ response API và trả về bản tiếng Việt (để hiển thị popup/toast).
+ * Trích body lỗi chuẩn từ Axios (align backend {@code ErrorResponse}).
  */
-export function getErrorMessageVi(
-  err: unknown,
-  fallback: string = DEFAULT_VI
-): string {
-  const data = (err as { response?: { data?: { message?: string } } })?.response?.data
-  const raw = data?.message?.trim()
-  if (!raw) return fallback
-  const translated = EN_TO_VI[raw]
-  if (translated) return translated
-  // Thử match theo prefix (vd: "Room not found: 1" -> "Không tìm thấy phòng.")
-  const prefixKey = Object.keys(EN_TO_VI).find((k) => raw.startsWith(k))
-  if (prefixKey) return EN_TO_VI[prefixKey]
-  // Message đã là tiếng Việt hoặc chưa có trong map -> dùng nguyên bản
+export function parseApiError(err: unknown): ApiErrorResponse | null {
+  if (!axios.isAxiosError(err)) return null
+  const data = err.response?.data
+  if (!isRecord(data)) return null
+  const msg = data.message
+  const fe = data.fieldErrors
+  const hasMsg = typeof msg === 'string'
+  const hasFields = Array.isArray(fe) && fe.length > 0
+  if (!hasMsg && !hasFields) return null
+  return data as unknown as ApiErrorResponse
+}
+
+/** HTTP status từ response (ưu tiên header, không dùng body.status). */
+export function getHttpStatus(err: unknown): number | undefined {
+  if (!axios.isAxiosError(err)) return undefined
+  return err.response?.status
+}
+
+export function isApiErrorStatus(err: unknown, status: number): boolean {
+  return getHttpStatus(err) === status
+}
+
+function joinFieldErrors(parsed: ApiErrorResponse): string | null {
+  const list = parsed.fieldErrors
+  if (!list?.length) return null
+  const parts = list
+    .map((f) => (typeof f.message === 'string' ? f.message.trim() : ''))
+    .filter(Boolean)
+  if (!parts.length) return null
+  return parts.join(' · ')
+}
+
+function translateMessage(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return raw
+  const exact = EN_TO_VI[trimmed]
+  if (exact) return exact
+  const prefix = EN_PREFIX_TO_VI.find((e) => trimmed.startsWith(e.prefix))
+  if (prefix) return prefix.vi
+  const legacyPrefix = Object.keys(EN_TO_VI).find((k) => trimmed.startsWith(k))
+  if (legacyPrefix) return EN_TO_VI[legacyPrefix]
   return raw
+}
+
+/**
+ * Lấy thông báo hiển thị (toast) từ lỗi API hoặc lỗi mạng.
+ */
+export function getErrorMessageVi(err: unknown, fallback: string = DEFAULT_API_ERROR_VI): string {
+  if (axios.isAxiosError(err) && !err.response) {
+    return NETWORK_VI
+  }
+
+  const parsed = parseApiError(err)
+  if (!parsed) {
+    return fallback
+  }
+
+  const fieldJoined = joinFieldErrors(parsed)
+  const raw = typeof parsed.message === 'string' ? parsed.message.trim() : ''
+
+  if (fieldJoined) {
+    if (!raw || GENERIC_BODY_MESSAGES.has(raw)) {
+      return translateMessage(fieldJoined)
+    }
+  }
+
+  if (!raw) {
+    if (fieldJoined) return translateMessage(fieldJoined)
+    return fallback
+  }
+
+  return translateMessage(raw)
 }

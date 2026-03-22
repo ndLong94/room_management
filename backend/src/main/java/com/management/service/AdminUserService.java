@@ -13,9 +13,10 @@ import com.management.dto.response.AdminUserListItemResponse;
 import com.management.dto.response.FeedbackResponse;
 import com.management.dto.response.UserPlatformPaymentResponse;
 import com.management.dto.response.UserResponse;
-import com.management.exception.AuthException;
+import com.management.exception.ConflictException;
+import com.management.exception.ForbiddenOperationException;
+import com.management.exception.UserNotFoundException;
 import com.management.repository.RoomRepository;
-import com.management.service.FeedbackService;
 import com.management.repository.UserPlatformPaymentRepository;
 import com.management.repository.UserPlatformPriceRepository;
 import com.management.repository.UserRepository;
@@ -47,7 +48,7 @@ public class AdminUserService {
     private static void ensureAdmin() {
         UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal.getUser().getRole() != com.management.domain.enums.UserRole.ADMIN) {
-            throw new AuthException("Chỉ admin mới được thực hiện thao tác này");
+            throw new ForbiddenOperationException("Chỉ admin mới được thực hiện thao tác này");
         }
     }
 
@@ -63,7 +64,7 @@ public class AdminUserService {
 
     public AdminUserDetailResponse getUserDetail(Long userId) {
         ensureAdmin();
-        User user = userRepository.findById(userId).orElseThrow(() -> new AuthException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
         int roomCount = (int) roomRepository.countByOwnerUserId(userId);
         UserPlatformPrice price = platformPriceRepository.findByUserId(userId).orElse(null);
         BigDecimal amount = price != null ? price.getAmount() : BigDecimal.ZERO;
@@ -94,20 +95,20 @@ public class AdminUserService {
     }
 
     @Transactional
-    public UserResponse createUser(CreateUserRequest request) {
+    public UserResponse createUser(CreateUserRequest createUserRequest) {
         ensureAdmin();
-        String username = request.getUsername().trim().toLowerCase();
-        String email = request.getEmail().trim().toLowerCase();
+        String username = createUserRequest.getUsername().trim().toLowerCase();
+        String email = createUserRequest.getEmail().trim().toLowerCase();
         if (userRepository.existsByUsernameIgnoreCase(username)) {
-            throw new AuthException("Username already taken");
+            throw new ConflictException("Username already taken");
         }
         if (userRepository.existsByEmailIgnoreCase(email)) {
-            throw new AuthException("Email already registered");
+            throw new ConflictException("Email already registered");
         }
         User user = User.builder()
                 .username(username)
                 .email(email)
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(passwordEncoder.encode(createUserRequest.getPassword()))
                 .role(com.management.domain.enums.UserRole.USER)
                 .status(UserStatus.ACTIVE)
                 .build();
@@ -118,50 +119,50 @@ public class AdminUserService {
     @Transactional
     public void approve(Long userId) {
         ensureAdmin();
-        User user = userRepository.findById(userId).orElseThrow(() -> new AuthException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
     }
 
     @Transactional
-    public void setStatus(Long userId, SetUserStatusRequest request) {
+    public void setStatus(Long userId, SetUserStatusRequest setUserStatusRequest) {
         ensureAdmin();
-        if (request.getStatus() == UserStatus.DRAFT) {
-            throw new AuthException("Cannot set status to DRAFT");
+        if (setUserStatusRequest.getStatus() == UserStatus.DRAFT) {
+            throw new IllegalArgumentException("Cannot set status to DRAFT");
         }
-        User user = userRepository.findById(userId).orElseThrow(() -> new AuthException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
         if (user.getRole() == com.management.domain.enums.UserRole.ADMIN) {
-            throw new AuthException("Cannot change status of admin user");
+            throw new ForbiddenOperationException("Cannot change status of admin user");
         }
-        user.setStatus(request.getStatus());
+        user.setStatus(setUserStatusRequest.getStatus());
         userRepository.save(user);
     }
 
     @Transactional
-    public void setPlatformPrice(Long userId, SetPlatformPriceRequest request) {
+    public void setPlatformPrice(Long userId, SetPlatformPriceRequest setPlatformPriceRequest) {
         ensureAdmin();
         if (!userRepository.existsById(userId)) {
-            throw new AuthException("User not found");
+            throw new UserNotFoundException("User not found");
         }
         UserPlatformPrice price = platformPriceRepository.findByUserId(userId)
                 .orElse(UserPlatformPrice.builder().userId(userId).amount(BigDecimal.ZERO).build());
-        price.setAmount(request.getAmount());
-        price.setNote(request.getNote());
+        price.setAmount(setPlatformPriceRequest.getAmount());
+        price.setNote(setPlatformPriceRequest.getNote());
         platformPriceRepository.save(price);
     }
 
     @Transactional
-    public UserPlatformPaymentResponse recordPayment(Long userId, RecordPlatformPaymentRequest request) {
+    public UserPlatformPaymentResponse recordPayment(Long userId, RecordPlatformPaymentRequest recordPlatformPaymentRequest) {
         ensureAdmin();
         if (!userRepository.existsById(userId)) {
-            throw new AuthException("User not found");
+            throw new UserNotFoundException("User not found");
         }
-        Instant paidAt = request.getPaidAt() != null ? request.getPaidAt() : Instant.now();
+        Instant paidAt = recordPlatformPaymentRequest.getPaidAt() != null ? recordPlatformPaymentRequest.getPaidAt() : Instant.now();
         UserPlatformPayment payment = UserPlatformPayment.builder()
                 .userId(userId)
-                .amount(request.getAmount())
+                .amount(recordPlatformPaymentRequest.getAmount())
                 .paidAt(paidAt)
-                .note(request.getNote())
+                .note(recordPlatformPaymentRequest.getNote())
                 .build();
         payment = platformPaymentRepository.save(payment);
         return UserPlatformPaymentResponse.builder()

@@ -30,6 +30,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,8 +47,12 @@ public class InvoiceService {
     private final ZaloNotificationService zaloNotificationService;
 
     @Transactional
-    public InvoiceResponse generate(Long roomId, int month, int year) {
+    public InvoiceResponse generate(Long propertyId, Long roomId, int month, int year) {
         long userId = currentUserId();
+        Long actualPropertyId = getPropertyIdForRoom(roomId);
+        if (!Objects.equals(actualPropertyId, propertyId)) {
+            throw new RoomNotFoundException("Room not found for property");
+        }
         return generateForOwner(roomId, month, year, userId);
     }
 
@@ -130,7 +135,7 @@ public class InvoiceService {
         invoice.setOtherAmount(otherAmount);
         invoice.setTotalAmount(totalAmount);
         invoice = invoiceRepository.save(invoice);
-        return toResponse(invoice);
+        return toResponseWithRoomAndPropertyMaps(invoice);
     }
 
     public List<InvoiceResponse> list(Integer month, Integer year, Long propertyId, InvoiceStatus status) {
@@ -141,7 +146,7 @@ public class InvoiceService {
         }
         Set<Long> roomIds = list.stream().map(Invoice::getRoomId).collect(Collectors.toSet());
         Map<Long, Room> roomMap = roomRepository.findAllById(roomIds).stream().collect(Collectors.toMap(Room::getId, r -> r));
-        Set<Long> propIds = roomMap.values().stream().map(Room::getPropertyId).filter(id -> id != null).collect(Collectors.toSet());
+        Set<Long> propIds = roomMap.values().stream().map(Room::getPropertyId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, Property> propMap = propIds.isEmpty() ? Map.of() : propertyRepository.findAllById(propIds).stream().collect(Collectors.toMap(Property::getId, p -> p));
         return list.stream().map(i -> toResponse(i, roomMap, propMap)).collect(Collectors.toList());
     }
@@ -150,19 +155,19 @@ public class InvoiceService {
         long userId = currentUserId();
         Invoice invoice = invoiceRepository.findByIdAndOwnerUserId(id, userId)
                 .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + id));
-        return toResponse(invoice);
+        return toResponseWithRoomAndPropertyMaps(invoice);
     }
 
     @Transactional
-    public InvoiceResponse markPaid(Long id, MarkPaidRequest request) {
+    public InvoiceResponse markPaid(Long id, MarkPaidRequest markPaidRequest) {
         long userId = currentUserId();
         Invoice invoice = invoiceRepository.findByIdAndOwnerUserId(id, userId)
                 .orElseThrow(() -> new InvoiceNotFoundException("Invoice not found: " + id));
         invoice.setStatus(InvoiceStatus.PAID);
-        invoice.setPaidAt(request.getPaidAt());
-        invoice.setPaymentMethod(request.getPaymentMethod());
+        invoice.setPaidAt(markPaidRequest.getPaidAt());
+        invoice.setPaymentMethod(markPaidRequest.getPaymentMethod());
         invoice = invoiceRepository.save(invoice);
-        return toResponse(invoice);
+        return toResponseWithRoomAndPropertyMaps(invoice);
     }
 
     @Transactional
@@ -174,7 +179,7 @@ public class InvoiceService {
         invoice.setPaidAt(null);
         invoice.setPaymentMethod(null);
         invoice = invoiceRepository.save(invoice);
-        return toResponse(invoice);
+        return toResponseWithRoomAndPropertyMaps(invoice);
     }
 
     /** Xóa hóa đơn chỉ khi chưa thanh toán (UNPAID). */
@@ -209,16 +214,9 @@ public class InvoiceService {
         if (zaloUserId == null || zaloUserId.isBlank()) {
             throw new IllegalStateException("Người nhận chưa có Zalo User ID. Vào danh sách người ở để nhập Zalo User ID cho người nhận.");
         }
-        InvoiceResponse response = toResponse(invoice);
+        InvoiceResponse response = toResponseWithRoomAndPropertyMaps(invoice);
         String message = zaloNotificationService.buildInvoiceMessage(response, null);
         zaloNotificationService.sendMessage(zaloUserId.trim(), message);
-    }
-
-    private void ensureRoomOwnedByUser(Long roomId, long userId) {
-        Long propertyId = getPropertyIdForRoom(roomId);
-        if (!propertyRepository.existsByIdAndOwnerUserId(propertyId, userId)) {
-            throw new PropertyNotFoundException("Property not found");
-        }
     }
 
     private Long getPropertyIdForRoom(Long roomId) {
@@ -232,15 +230,24 @@ public class InvoiceService {
         return principal.getUser().getId();
     }
 
-    private InvoiceResponse toResponse(Invoice i) {
-        Room room = roomRepository.findById(i.getRoomId()).orElse(null);
-        String roomName = room != null ? room.getName() : "—";
-        Long propId = room != null ? room.getPropertyId() : null;
-        Property property = propId != null ? propertyRepository.findById(propId).orElse(null) : null;
-        String propertyName = property != null ? property.getName() : "—";
-        BigDecimal elecUnit = property != null && property.getElecPrice() != null ? property.getElecPrice() : null;
-        BigDecimal waterUnit = property != null && property.getWaterPrice() != null ? property.getWaterPrice() : null;
-        return buildResponse(i, roomName, propId, propertyName, elecUnit, waterUnit);
+    /**
+     * Loads room + property in bulk (same strategy as {@link #list}) to avoid chained {@code findById} calls per invoice.
+     */
+    private InvoiceResponse toResponseWithRoomAndPropertyMaps(Invoice invoice) {
+        Long roomId = invoice.getRoomId();
+        if (roomId == null) {
+            return toResponse(invoice, Map.of(), Map.of());
+        }
+        Map<Long, Room> roomMap = roomRepository.findAllById(Set.of(roomId)).stream()
+                .collect(Collectors.toMap(Room::getId, r -> r));
+        Set<Long> propIds = roomMap.values().stream()
+                .map(Room::getPropertyId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, Property> propMap = propIds.isEmpty()
+                ? Map.of()
+                : propertyRepository.findAllById(propIds).stream().collect(Collectors.toMap(Property::getId, p -> p));
+        return toResponse(invoice, roomMap, propMap);
     }
 
     private InvoiceResponse toResponse(Invoice i, Map<Long, Room> roomMap, Map<Long, Property> propMap) {

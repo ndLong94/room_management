@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import {
   createRoom,
   deleteRoom,
@@ -37,7 +38,7 @@ export function useCreateRoom(propertyId: number) {
       queryClient.invalidateQueries({ queryKey: roomsKey(propertyId) })
       toast.success('Đã thêm phòng')
     },
-    onError: () => toast.error('Không thể thêm phòng'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể thêm phòng')),
   })
 }
 
@@ -51,7 +52,7 @@ export function useUpdateRoom(propertyId: number) {
       queryClient.invalidateQueries({ queryKey: [...roomsKey(propertyId), roomId] })
       toast.success('Đã cập nhật phòng')
     },
-    onError: () => toast.error('Không thể cập nhật phòng'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể cập nhật phòng')),
   })
 }
 
@@ -63,6 +64,6 @@ export function useDeleteRoom(propertyId: number) {
       queryClient.invalidateQueries({ queryKey: roomsKey(propertyId) })
       toast.success('Đã xóa phòng')
     },
-    onError: () => toast.error('Không thể xóa phòng'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể xóa phòng')),
   })
 }

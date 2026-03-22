@@ -10,11 +10,14 @@ import com.management.dto.request.UpdateFeedbackRequest;
 import com.management.dto.response.AdminFeedbackListItemResponse;
 import com.management.dto.response.FeedbackConversationMessage;
 import com.management.dto.response.FeedbackResponse;
-import com.management.exception.AuthException;
+import com.management.exception.ConflictException;
+import com.management.exception.FeedbackNotFoundException;
+import com.management.exception.ForbiddenOperationException;
 import com.management.repository.FeedbackRepository;
 import com.management.repository.UserRepository;
 import com.management.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,9 @@ public class FeedbackService {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
+    @Value("${app.feedback.max-pending-per-user:2}")
+    private int maxPendingFeedbackPerUser;
+
     private static Long currentUserId() {
         UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return principal.getUser().getId();
@@ -44,22 +50,21 @@ public class FeedbackService {
     private static void ensureAdmin() {
         UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal.getUser().getRole() != com.management.domain.enums.UserRole.ADMIN) {
-            throw new AuthException("Chỉ admin mới được thực hiện thao tác này");
+            throw new ForbiddenOperationException("Chỉ admin mới được thực hiện thao tác này");
         }
     }
 
-    private static final int MAX_PENDING_FEEDBACK_PER_USER = 2;
-
     @Transactional
-    public FeedbackResponse create(CreateFeedbackRequest request) {
+    public FeedbackResponse create(CreateFeedbackRequest createFeedbackRequest) {
         Long userId = currentUserId();
         long pendingCount = feedbackRepository.countByUserIdAndStatus(userId, FeedbackStatus.PENDING);
-        if (pendingCount >= MAX_PENDING_FEEDBACK_PER_USER) {
-            throw new AuthException("Mỗi user chỉ được có tối đa 2 ý kiến đang chờ xử lý. Vui lòng chờ admin phản hồi hoặc hủy ý kiến cũ.");
+        if (pendingCount >= maxPendingFeedbackPerUser) {
+            throw new ConflictException("Mỗi user chỉ được có tối đa " + maxPendingFeedbackPerUser
+                    + " ý kiến đang chờ xử lý. Vui lòng chờ admin phản hồi hoặc hủy ý kiến cũ.");
         }
         Feedback feedback = Feedback.builder()
                 .userId(userId)
-                .content(request.getContent().trim())
+                .content(createFeedbackRequest.getContent().trim())
                 .status(FeedbackStatus.PENDING)
                 .build();
         feedback = feedbackRepository.save(feedback);
@@ -107,12 +112,12 @@ public class FeedbackService {
     public FeedbackResponse addReplyByUser(Long feedbackId, String content) {
         Long userId = currentUserId();
         Feedback feedback = feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new AuthException("Không tìm thấy ý kiến"));
+                .orElseThrow(() -> new FeedbackNotFoundException("Không tìm thấy ý kiến"));
         if (!feedback.getUserId().equals(userId)) {
-            throw new AuthException("Chỉ được phản hồi ý kiến của chính bạn.");
+            throw new ForbiddenOperationException("Chỉ được phản hồi ý kiến của chính bạn.");
         }
         if (feedback.getStatus() == FeedbackStatus.RESOLVED) {
-            throw new AuthException("Ý kiến đã đóng, không thể thêm phản hồi.");
+            throw new IllegalStateException("Ý kiến đã đóng, không thể thêm phản hồi.");
         }
         appendConversationMessage(feedback, FeedbackConversationMessage.ROLE_USER, userId, content.trim());
         feedback = feedbackRepository.save(feedback);
@@ -125,7 +130,7 @@ public class FeedbackService {
         ensureAdmin();
         Long adminUserId = currentUserId();
         Feedback feedback = feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new AuthException("Không tìm thấy ý kiến"));
+                .orElseThrow(() -> new FeedbackNotFoundException("Không tìm thấy ý kiến"));
         appendConversationMessage(feedback, FeedbackConversationMessage.ROLE_ADMIN, adminUserId, content.trim());
         feedback = feedbackRepository.save(feedback);
         return toResponse(feedback);
@@ -159,18 +164,18 @@ public class FeedbackService {
     }
 
     @Transactional
-    public FeedbackResponse updateFeedback(Long feedbackId, UpdateFeedbackRequest request) {
+    public FeedbackResponse updateFeedback(Long feedbackId, UpdateFeedbackRequest updateFeedbackRequest) {
         ensureAdmin();
         Feedback feedback = feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new AuthException("Không tìm thấy ý kiến"));
-        if (request.getContent() != null && !request.getContent().isBlank()) {
-            feedback.setContent(request.getContent().trim());
+                .orElseThrow(() -> new FeedbackNotFoundException("Không tìm thấy ý kiến"));
+        if (updateFeedbackRequest.getContent() != null && !updateFeedbackRequest.getContent().isBlank()) {
+            feedback.setContent(updateFeedbackRequest.getContent().trim());
         }
-        if (request.getStatus() != null) {
-            feedback.setStatus(request.getStatus());
+        if (updateFeedbackRequest.getStatus() != null) {
+            feedback.setStatus(updateFeedbackRequest.getStatus());
         }
-        if (request.getAdminNote() != null) {
-            feedback.setAdminNote(request.getAdminNote().trim().isEmpty() ? null : request.getAdminNote().trim());
+        if (updateFeedbackRequest.getAdminNote() != null) {
+            feedback.setAdminNote(updateFeedbackRequest.getAdminNote().trim().isEmpty() ? null : updateFeedbackRequest.getAdminNote().trim());
         }
         feedback = feedbackRepository.save(feedback);
         return toResponse(feedback);
@@ -181,12 +186,12 @@ public class FeedbackService {
     public FeedbackResponse updateMyFeedback(Long feedbackId, String content) {
         Long userId = currentUserId();
         Feedback feedback = feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new AuthException("Không tìm thấy ý kiến"));
+                .orElseThrow(() -> new FeedbackNotFoundException("Không tìm thấy ý kiến"));
         if (!feedback.getUserId().equals(userId)) {
-            throw new AuthException("Chỉ được sửa ý kiến của chính bạn.");
+            throw new ForbiddenOperationException("Chỉ được sửa ý kiến của chính bạn.");
         }
         if (feedback.getStatus() != FeedbackStatus.PENDING) {
-            throw new AuthException("Chỉ được sửa ý kiến đang chờ xử lý.");
+            throw new IllegalStateException("Chỉ được sửa ý kiến đang chờ xử lý.");
         }
         feedback.setContent(content.trim());
         feedback = feedbackRepository.save(feedback);
@@ -198,12 +203,12 @@ public class FeedbackService {
     public void deleteMyFeedback(Long feedbackId) {
         Long userId = currentUserId();
         Feedback feedback = feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new AuthException("Không tìm thấy ý kiến"));
+                .orElseThrow(() -> new FeedbackNotFoundException("Không tìm thấy ý kiến"));
         if (!feedback.getUserId().equals(userId)) {
-            throw new AuthException("Chỉ được xóa ý kiến của chính bạn.");
+            throw new ForbiddenOperationException("Chỉ được xóa ý kiến của chính bạn.");
         }
         if (feedback.getStatus() != FeedbackStatus.PENDING) {
-            throw new AuthException("Chỉ được xóa ý kiến đang chờ xử lý.");
+            throw new IllegalStateException("Chỉ được xóa ý kiến đang chờ xử lý.");
         }
         feedbackRepository.delete(feedback);
     }

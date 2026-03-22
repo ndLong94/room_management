@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import { useProperty } from '@/hooks/useProperties'
 import { useDeleteRoom, useRooms } from '@/hooks/useRooms'
 import { fetchOccupants } from '@/api/occupants'
-import { formatDateVietnamese } from '@/utils/format'
+import { formatDateVietnamese, formatMoney } from '@/utils'
 
 export function RoomListPage() {
   const { propertyId } = useParams<{ propertyId: string }>()
@@ -26,7 +26,8 @@ export function RoomListPage() {
           return
         }
       } catch {
-        // ignore
+        toast.error('Không kiểm tra được người ở. Vui lòng thử lại.')
+        return
       }
     }
     if (window.confirm(`Xóa phòng "${name}"?`)) {
@@ -86,7 +87,7 @@ export function RoomListPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-slate-900 dark:text-white">{r.name}</p>
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    {typeof r.rentPrice === 'number' ? r.rentPrice.toLocaleString() : r.rentPrice} đ/tháng
+                    {formatMoney(r.rentPrice)} đ/tháng
                   </p>
                 </div>
                 <span
@@ -111,7 +112,7 @@ export function RoomListPage() {
                       </span>
                       {' '}
                       <span className="text-slate-500 dark:text-slate-400">
-                        {typeof r.depositAmount === 'number' ? r.depositAmount.toLocaleString() : r.depositAmount} đ
+                        {formatMoney(r.depositAmount)} đ
                       </span>
                       {r.depositDate && (
                         <span className="text-slate-500 dark:text-slate-400">
@@ -197,7 +198,7 @@ export function RoomListPage() {
                 >
                   <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{r.name}</td>
                   <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">
-                    {typeof r.rentPrice === 'number' ? r.rentPrice.toLocaleString() : r.rentPrice}
+                    {formatMoney(r.rentPrice)}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -221,7 +222,7 @@ export function RoomListPage() {
                             </span>
                             {' '}
                             <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {typeof r.depositAmount === 'number' ? r.depositAmount.toLocaleString() : r.depositAmount} đ
+                              {formatMoney(r.depositAmount)} đ
                             </span>
                             {r.depositDate && (
                               <span className="text-xs text-slate-500 dark:text-slate-400">

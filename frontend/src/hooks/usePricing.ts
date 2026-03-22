@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import { fetchPricing, updatePricing } from '@/api/pricing'
 import type { UpdatePricingInput } from '@/types/pricing'
 
@@ -20,6 +21,6 @@ export function useUpdatePricing() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
       toast.success('Đã cập nhật đơn giá')
     },
-    onError: () => toast.error('Không thể cập nhật đơn giá'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể cập nhật đơn giá')),
   })
 }

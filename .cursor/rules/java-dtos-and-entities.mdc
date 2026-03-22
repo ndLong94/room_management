@@ -1,0 +1,20 @@
+---
+description: DTOs and JPA entities — naming, Lombok, JSON
+globs: backend/**/dto/**/*.java, backend/**/domain/**/*.java
+alwaysApply: false
+---
+
+# DTOs and entities
+
+## Request / response DTOs (`dto/request`, `dto/response`)
+
+- Naming: `*Request`, `*Response`. Avoid a `*Dto` suffix on public API types.
+- Use Lombok (`@Data`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor` as needed) consistent with existing DTOs.
+- JSON field names: **camelCase**. Use `@JsonIgnoreProperties(ignoreUnknown = true)` on DTOs that deserialize from the client when appropriate.
+- Implement `Serializable` only when the codebase already does for that style of type.
+
+## Entities (`domain.entity`)
+
+- Table names and column naming should match existing entities (typically snake_case in `@Table` / `@Column` if used).
+- Prefer enums for fixed sets of states/statuses instead of raw strings, aligned with the rest of the model.
+- Use appropriate date/time types consistent with existing entities (e.g. `Instant`, `LocalDate`, or `Timestamp`—do not mix styles in one bounded context without reason).

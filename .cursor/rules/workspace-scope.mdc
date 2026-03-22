@@ -1,0 +1,14 @@
+---
+description: Repository layout — which rules apply to backend vs frontend
+alwaysApply: true
+---
+
+# Workspace scope
+
+| Path | Stack | Rules |
+|------|--------|--------|
+| **backend/** | Java, Spring Boot | `java-*.mdc` (includes **java-naming**, **java-reuse-utils**), `db-migrations.mdc` |
+| **backend/src/main/resources/migration/** | Flyway SQL | `db-migrations.mdc` |
+| **frontend/** | React 18, TypeScript, Vite, Tailwind | `frontend-react-typescript.mdc`, **frontend-reuse-utils** |
+
+When editing a file, follow the conventions for that path. Do not apply Spring/Java API patterns to React code or vice versa.

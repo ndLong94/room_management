@@ -5,6 +5,7 @@ import com.management.dto.request.UpdatePricingSettingRequest;
 import com.management.dto.response.PricingSettingResponse;
 import com.management.repository.PricingSettingRepository;
 import com.management.security.UserPrincipal;
+import com.management.util.Text;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -24,14 +25,15 @@ public class PricingSettingService {
     }
 
     @Transactional
-    public PricingSettingResponse updateForCurrentUser(UpdatePricingSettingRequest request) {
+    public PricingSettingResponse updateForCurrentUser(UpdatePricingSettingRequest updatePricingSettingRequest) {
         Long userId = currentUserId();
         PricingSetting setting = pricingSettingRepository.findByOwnerUserId(userId)
                 .orElseGet(() -> createDefault(userId));
-        setting.setElecPrice(request.getElecPrice());
-        setting.setWaterPrice(request.getWaterPrice());
-        if (request.getCurrency() != null) {
-            setting.setCurrency(request.getCurrency().trim());
+        setting.setElecPrice(updatePricingSettingRequest.getElecPrice());
+        setting.setWaterPrice(updatePricingSettingRequest.getWaterPrice());
+        String currency = Text.trimToNull(updatePricingSettingRequest.getCurrency());
+        if (currency != null) {
+            setting.setCurrency(currency);
         }
         setting = pricingSettingRepository.save(setting);
         return toResponse(setting);

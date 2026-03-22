@@ -7,10 +7,9 @@ import {
 } from '@/api/occupancyPeriods'
 import { useProperty } from '@/hooks/useProperties'
 import { useRoom } from '@/hooks/useRooms'
+import { ProtectedDocAnchor } from '@/components/ProtectedDocAnchor'
 import { formatAmount, formatDateVietnamese } from '@/utils'
 import type { OccupancyPeriod, OccupancyPeriodOccupant } from '@/types/occupancyPeriod'
-
-const DOC_BASE = import.meta.env.VITE_API_URL ?? ''
 
 function periodLabel(p: OccupancyPeriod) {
   const from =
@@ -30,14 +29,9 @@ function OccupantInfoModal({
 }) {
   const link = (url: string | null | undefined, label: string) =>
     url ? (
-      <a
-        href={url.startsWith('http') ? url : `${DOC_BASE}${url}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-sky-600 dark:text-sky-400"
-      >
+      <ProtectedDocAnchor href={url} className="text-sky-600 dark:text-sky-400">
         {label}
-      </a>
+      </ProtectedDocAnchor>
     ) : (
       <span className="text-slate-400">—</span>
     )
@@ -224,14 +218,9 @@ export function RoomHistoryPage() {
                       <>
                         <dt className="text-slate-500 dark:text-slate-400">Hợp đồng</dt>
                         <dd>
-                          <a
-                            href={currentPeriod.contractUrl.startsWith('http') ? currentPeriod.contractUrl : `${DOC_BASE}${currentPeriod.contractUrl}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sky-600 dark:text-sky-400"
-                          >
+                          <ProtectedDocAnchor href={currentPeriod.contractUrl} className="text-sky-600 dark:text-sky-400">
                             Xem hợp đồng
-                          </a>
+                          </ProtectedDocAnchor>
                         </dd>
                       </>
                     )}

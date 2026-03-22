@@ -52,11 +52,11 @@ public class RoomLeaseService {
     }
 
     @Transactional
-    public RoomLeaseResponse create(Long propertyId, Long roomId, CreateRoomLeaseRequest request) {
+    public RoomLeaseResponse create(Long propertyId, Long roomId, CreateRoomLeaseRequest createRoomLeaseRequest) {
         long userId = currentUserId();
         ensureRoomOwned(propertyId, roomId, userId);
-        Tenant tenant = tenantRepository.findByIdAndOwnerUserId(request.getTenantId(), userId)
-                .orElseThrow(() -> new TenantNotFoundException("Không tìm thấy người thuê: " + request.getTenantId()));
+        Tenant tenant = tenantRepository.findByIdAndOwnerUserId(createRoomLeaseRequest.getTenantId(), userId)
+                .orElseThrow(() -> new TenantNotFoundException("Không tìm thấy người thuê: " + createRoomLeaseRequest.getTenantId()));
         // Deactivate any current active lease for this room
         roomLeaseRepository.findFirstByRoomIdAndActiveTrue(roomId).ifPresent(rl -> {
             rl.setActive(false);
@@ -65,13 +65,13 @@ public class RoomLeaseService {
             }
             roomLeaseRepository.save(rl);
         });
-        BigDecimal deposit = request.getDepositAmount() != null ? request.getDepositAmount() : BigDecimal.ZERO;
+        BigDecimal deposit = createRoomLeaseRequest.getDepositAmount() != null ? createRoomLeaseRequest.getDepositAmount() : BigDecimal.ZERO;
         RoomLease lease = RoomLease.builder()
                 .roomId(roomId)
                 .tenantId(tenant.getId())
                 .active(true)
-                .moveInDate(request.getMoveInDate())
-                .moveOutDate(request.getMoveOutDate())
+                .moveInDate(createRoomLeaseRequest.getMoveInDate())
+                .moveOutDate(createRoomLeaseRequest.getMoveOutDate())
                 .depositAmount(deposit)
                 .build();
         lease = roomLeaseRepository.save(lease);
@@ -79,7 +79,7 @@ public class RoomLeaseService {
     }
 
     @Transactional
-    public RoomLeaseResponse update(Long propertyId, Long roomId, Long leaseId, UpdateRoomLeaseRequest request) {
+    public RoomLeaseResponse update(Long propertyId, Long roomId, Long leaseId, UpdateRoomLeaseRequest updateRoomLeaseRequest) {
         long userId = currentUserId();
         ensureRoomOwned(propertyId, roomId, userId);
         RoomLease lease = roomLeaseRepository.findById(leaseId)
@@ -87,9 +87,9 @@ public class RoomLeaseService {
         if (!lease.getRoomId().equals(roomId)) {
             throw new RoomLeaseNotFoundException("Hợp đồng không thuộc phòng này.");
         }
-        if (request.getMoveInDate() != null) lease.setMoveInDate(request.getMoveInDate());
-        if (request.getMoveOutDate() != null) lease.setMoveOutDate(request.getMoveOutDate());
-        if (request.getDepositAmount() != null) lease.setDepositAmount(request.getDepositAmount());
+        if (updateRoomLeaseRequest.getMoveInDate() != null) lease.setMoveInDate(updateRoomLeaseRequest.getMoveInDate());
+        if (updateRoomLeaseRequest.getMoveOutDate() != null) lease.setMoveOutDate(updateRoomLeaseRequest.getMoveOutDate());
+        if (updateRoomLeaseRequest.getDepositAmount() != null) lease.setDepositAmount(updateRoomLeaseRequest.getDepositAmount());
         lease = roomLeaseRepository.save(lease);
         return toResponse(lease, true);
     }

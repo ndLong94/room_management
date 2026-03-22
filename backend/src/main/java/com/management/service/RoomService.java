@@ -1,5 +1,6 @@
 package com.management.service;
 
+import com.management.domain.entity.MeterReading;
 import com.management.domain.entity.OccupancyPeriod;
 import com.management.domain.entity.OccupancyPeriodOccupant;
 import com.management.domain.entity.Occupant;
@@ -17,6 +18,7 @@ import com.management.repository.OccupantRepository;
 import com.management.repository.PropertyRepository;
 import com.management.repository.RoomRepository;
 import com.management.security.UserPrincipal;
+import com.management.util.Text;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -54,37 +56,37 @@ public class RoomService {
     }
 
     @Transactional
-    public RoomResponse create(Long propertyId, CreateRoomRequest request) {
+    public RoomResponse create(Long propertyId, CreateRoomRequest createRoomRequest) {
         ensurePropertyOwnedByCurrentUser(propertyId);
         Room room = Room.builder()
                 .propertyId(propertyId)
-                .name(request.getName().trim())
-                .rentPrice(request.getRentPrice() != null ? request.getRentPrice() : BigDecimal.ZERO)
-                .status(request.getStatus() != null ? request.getStatus() : RoomStatus.VACANT)
-                .paymentDay(request.getPaymentDay())
-                .depositAmount(request.getDepositAmount())
-                .depositDate(request.getDepositDate())
-                .depositPaid(request.getDepositPaid() != null ? request.getDepositPaid() : false)
-                .fixedElecAmount(request.getFixedElecAmount())
-                .fixedWaterAmount(request.getFixedWaterAmount())
-                .initialElecReading(request.getInitialElecReading())
-                .initialWaterReading(request.getInitialWaterReading())
+                .name(createRoomRequest.getName().trim())
+                .rentPrice(createRoomRequest.getRentPrice() != null ? createRoomRequest.getRentPrice() : BigDecimal.ZERO)
+                .status(createRoomRequest.getStatus() != null ? createRoomRequest.getStatus() : RoomStatus.VACANT)
+                .paymentDay(createRoomRequest.getPaymentDay())
+                .depositAmount(createRoomRequest.getDepositAmount())
+                .depositDate(createRoomRequest.getDepositDate())
+                .depositPaid(createRoomRequest.getDepositPaid() != null ? createRoomRequest.getDepositPaid() : false)
+                .fixedElecAmount(createRoomRequest.getFixedElecAmount())
+                .fixedWaterAmount(createRoomRequest.getFixedWaterAmount())
+                .initialElecReading(createRoomRequest.getInitialElecReading())
+                .initialWaterReading(createRoomRequest.getInitialWaterReading())
                 .build();
         room = roomRepository.save(room);
         return toResponse(room);
     }
 
     @Transactional
-    public RoomResponse update(Long propertyId, Long roomId, UpdateRoomRequest request) {
+    public RoomResponse update(Long propertyId, Long roomId, UpdateRoomRequest updateRoomRequest) {
         ensurePropertyOwnedByCurrentUser(propertyId);
         Room room = roomRepository.findByIdAndPropertyId(roomId, propertyId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found: " + roomId));
-        RoomStatus newStatus = request.getStatus();
+        RoomStatus newStatus = updateRoomRequest.getStatus();
         if (newStatus == RoomStatus.VACANT && room.getStatus() == RoomStatus.OCCUPIED) {
             archiveOccupantsAndVacate(propertyId, roomId, room);
         }
-        room.setName(request.getName().trim());
-        room.setRentPrice(request.getRentPrice() != null ? request.getRentPrice() : BigDecimal.ZERO);
+        room.setName(updateRoomRequest.getName().trim());
+        room.setRentPrice(updateRoomRequest.getRentPrice() != null ? updateRoomRequest.getRentPrice() : BigDecimal.ZERO);
         room.setStatus(newStatus);
         if (newStatus == RoomStatus.VACANT) {
             room.setContractUrl(null);
@@ -93,25 +95,25 @@ public class RoomService {
             room.setDepositDate(null);
             room.setDepositPaid(false);
         } else {
-            room.setContractUrl(request.getContractUrl() != null ? request.getContractUrl().trim() : null);
-            room.setPaymentDay(request.getPaymentDay());
-            room.setDepositAmount(request.getDepositAmount());
-            room.setDepositDate(request.getDepositDate());
+            room.setContractUrl(Text.trimToNull(updateRoomRequest.getContractUrl()));
+            room.setPaymentDay(updateRoomRequest.getPaymentDay());
+            room.setDepositAmount(updateRoomRequest.getDepositAmount());
+            room.setDepositDate(updateRoomRequest.getDepositDate());
             // Set depositPaid: if null in request, keep existing value; otherwise update (including false)
-            if (request.getDepositPaid() != null) {
-                room.setDepositPaid(request.getDepositPaid());
+            if (updateRoomRequest.getDepositPaid() != null) {
+                room.setDepositPaid(updateRoomRequest.getDepositPaid());
             } else {
                 // If depositPaid is not provided in request, default to false if depositAmount is set, otherwise keep existing
-                if (request.getDepositAmount() != null && room.getDepositPaid() == null) {
+                if (updateRoomRequest.getDepositAmount() != null && room.getDepositPaid() == null) {
                     room.setDepositPaid(false);
                 }
             }
         }
-        room.setFixedElecAmount(request.getFixedElecAmount());
-        room.setFixedWaterAmount(request.getFixedWaterAmount());
-        if (request.getInitialElecReading() != null) room.setInitialElecReading(request.getInitialElecReading());
-        if (request.getInitialWaterReading() != null) room.setInitialWaterReading(request.getInitialWaterReading());
-        Long recipientId = request.getInvoiceRecipientOccupantId();
+        room.setFixedElecAmount(updateRoomRequest.getFixedElecAmount());
+        room.setFixedWaterAmount(updateRoomRequest.getFixedWaterAmount());
+        if (updateRoomRequest.getInitialElecReading() != null) room.setInitialElecReading(updateRoomRequest.getInitialElecReading());
+        if (updateRoomRequest.getInitialWaterReading() != null) room.setInitialWaterReading(updateRoomRequest.getInitialWaterReading());
+        Long recipientId = updateRoomRequest.getInvoiceRecipientOccupantId();
         if (recipientId != null && !occupantRepository.findByIdAndRoomId(recipientId, roomId).isPresent()) {
             throw new IllegalArgumentException("Người nhận Zalo phải là người ở trong phòng này.");
         }
@@ -132,7 +134,7 @@ public class RoomService {
         BigDecimal finalWaterReading = null;
         
         // Thử lấy meter reading của tháng hiện tại trước
-        Optional<com.management.domain.entity.MeterReading> currentMonthReading = 
+        Optional<MeterReading> currentMonthReading =
                 meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, currentMonth, currentYear);
         
         if (currentMonthReading.isPresent()) {
@@ -141,10 +143,10 @@ public class RoomService {
             finalWaterReading = currentMonthReading.get().getWaterReading();
         } else {
             // Không có meter reading tháng hiện tại → lấy meter reading gần nhất
-            List<com.management.domain.entity.MeterReading> latestReadings = 
+            List<MeterReading> latestReadings =
                     meterReadingRepository.findByRoomIdOrderByYearDescMonthDesc(roomId);
             if (!latestReadings.isEmpty()) {
-                com.management.domain.entity.MeterReading latest = latestReadings.get(0);
+                MeterReading latest = latestReadings.get(0);
                 finalElecReading = latest.getElecReading();
                 finalWaterReading = latest.getWaterReading();
             } else {
@@ -174,20 +176,20 @@ public class RoomService {
                 .build();
         period = occupancyPeriodRepository.save(period);
         List<Occupant> occupants = occupantRepository.findByRoomIdOrderByCreatedAtDesc(roomId);
-        for (Occupant o : occupants) {
+        for (Occupant occupant : occupants) {
             OccupancyPeriodOccupant po = OccupancyPeriodOccupant.builder()
                     .periodId(period.getId())
-                    .fullName(o.getFullName())
-                    .phone(o.getPhone())
-                    .idNumber(o.getIdNumber())
-                    .idType(o.getIdType())
-                    .address(o.getAddress())
-                    .dob(o.getDob())
-                    .avatarUrl(o.getAvatarUrl())
-                    .idFrontUrl(o.getIdFrontUrl())
-                    .idBackUrl(o.getIdBackUrl())
-                    .tempResidenceUrl(o.getTempResidenceUrl())
-                    .note(o.getNote())
+                    .fullName(occupant.getFullName())
+                    .phone(occupant.getPhone())
+                    .idNumber(occupant.getIdNumber())
+                    .idType(occupant.getIdType())
+                    .address(occupant.getAddress())
+                    .dob(occupant.getDob())
+                    .avatarUrl(occupant.getAvatarUrl())
+                    .idFrontUrl(occupant.getIdFrontUrl())
+                    .idBackUrl(occupant.getIdBackUrl())
+                    .tempResidenceUrl(occupant.getTempResidenceUrl())
+                    .note(occupant.getNote())
                     .build();
             occupancyPeriodOccupantRepository.save(po);
         }

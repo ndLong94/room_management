@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { GoogleLogin } from '@react-oauth/google'
 import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { api } from '@/lib/api'
+import { login, loginWithFacebook, loginWithGoogle, register } from '@/api/auth'
 import { getErrorMessageVi } from '@/utils'
 
 declare global {
@@ -72,38 +72,38 @@ export function LoginPage() {
 
   const onLogin = async (data: LoginForm) => {
     try {
-      const res = await api.post<{
-        access_token: string | null
-        user: { id: number; username: string; email: string; role: string; createdAt: string }
-      }>('/api/auth/login', {
+      const res = await login({
         username: data.username,
         password: data.password,
       })
-      const token = res.data.access_token
+      const token = res.access_token
       if (token) {
         localStorage.setItem('access_token', token)
-        if (res.data.user) queryClient.setQueryData(['me'], res.data.user)
+        if (res.user) queryClient.setQueryData(['me'], res.user)
         toast.success('Đăng nhập thành công')
-        navigate(res.data.user?.role === 'ADMIN' ? '/admin/users' : '/', { replace: true })
+        navigate(res.user?.role === 'ADMIN' ? '/admin/users' : '/', { replace: true })
       }
     } catch (err: unknown) {
       toast.error(getErrorMessageVi(err, 'Sai tên đăng nhập hoặc mật khẩu.'))
     }
   }
 
-  const handleOAuthSuccess = (res: { data: { access_token: string; user?: { role?: string; [key: string]: unknown } } }) => {
-    const token = res.data.access_token
+  const handleOAuthSuccess = (payload: {
+    access_token: string
+    user?: { role?: string; [key: string]: unknown }
+  }) => {
+    const token = payload.access_token
     if (token) {
       localStorage.setItem('access_token', token)
-      if (res.data.user) queryClient.setQueryData(['me'], res.data.user)
+      if (payload.user) queryClient.setQueryData(['me'], payload.user)
       toast.success('Đăng nhập thành công')
-      navigate(res.data.user?.role === 'ADMIN' ? '/admin/users' : '/', { replace: true })
+      navigate(payload.user?.role === 'ADMIN' ? '/admin/users' : '/', { replace: true })
     }
   }
 
   const handleGoogleSuccess = async (credential: string) => {
     try {
-      const res = await api.post<{ access_token: string; user?: { role?: string; [key: string]: unknown } }>('/api/auth/google', { credential })
+      const res = await loginWithGoogle(credential)
       handleOAuthSuccess(res)
     } catch (err: unknown) {
       toast.error(getErrorMessageVi(err))
@@ -122,9 +122,7 @@ export function LoginPage() {
           return
         }
         try {
-          const res = await api.post<{ access_token: string; user?: { role?: string; [key: string]: unknown } }>('/api/auth/facebook', {
-            accessToken: response.authResponse.accessToken,
-          })
+          const res = await loginWithFacebook(response.authResponse.accessToken)
           handleOAuthSuccess(res)
         } catch (err: unknown) {
           toast.error(getErrorMessageVi(err))
@@ -136,24 +134,22 @@ export function LoginPage() {
 
   const onRegister = async (data: RegisterForm) => {
     try {
-      const res = await api.post<{ access_token: string | null; user: unknown }>('/api/auth/register', {
+      const res = await register({
         username: data.username,
         email: data.email,
         password: data.password,
       })
-      if (!res.data.access_token) {
+      if (!res.access_token) {
         toast.success('Đăng ký thành công. Vui lòng chờ admin duyệt tài khoản.')
         setMode('login')
         registerForm.reset()
       } else {
-        localStorage.setItem('access_token', res.data.access_token)
+        localStorage.setItem('access_token', res.access_token)
         toast.success('Đăng nhập thành công')
         navigate('/', { replace: true })
       }
     } catch (err: unknown) {
-      const msg = getErrorMessageVi(err)
-      toast.error(msg)
-      window.alert(msg)
+      toast.error(getErrorMessageVi(err))
     }
   }
 

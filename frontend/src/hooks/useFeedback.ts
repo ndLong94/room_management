@@ -119,6 +119,8 @@ export function useUpdateFeedbackAdmin() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'feedback'] })
       toast.success('Đã cập nhật ý kiến')
     },
-    onError: () => toast.error('Không thể cập nhật'),
+    onError: (err: unknown) => {
+      toast.error(getErrorMessageVi(err, 'Không thể cập nhật'))
+    },
   })
 }

@@ -1,0 +1,57 @@
+---
+description: Spring Boot backend — packages, controllers, services, performance
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Java / Spring Boot (backend)
+
+Base package: `com.management`.
+
+## Package layout
+
+| Area | Package / location |
+|------|---------------------|
+| REST API | `com.management.controller` |
+| Business logic | `com.management.service` |
+| Security | `com.management.security` |
+| Config | `com.management.config` |
+| Persistence | `com.management.repository` |
+| JPA entities & enums | `com.management.domain.entity`, `com.management.domain.enums` |
+| Request/response DTOs | `com.management.dto.request`, `com.management.dto.response` |
+| Exceptions | `com.management.exception` |
+| Batch jobs | `com.management.batch`, `com.management.batch.config` |
+
+Keep controllers thin: validate input, delegate to services, map to HTTP status and DTOs.
+
+## Controllers
+
+- Use `@RestController`, `@RequestMapping` for a base path (e.g. `/api/auth`), `@RequiredArgsConstructor` for constructor injection.
+- Prefer OpenAPI annotations (`@Tag`, `@Operation`) where the project already uses them.
+- Use `@Valid` on request bodies when bean validation is required.
+- Return `ResponseEntity<T>` with the response DTO (or empty body with appropriate status). Align with existing controllers (e.g. `CREATED` for registration).
+- Do not duplicate global exception handling in controllers unless the codebase already uses local handlers.
+
+## Services
+
+- Naming: `*Service` for application services (this project uses concrete classes, not `I*Service` interfaces).
+- Keep transactions and domain rules in services; controllers should not contain business logic.
+
+## Repositories and N+1
+
+- Do **not** call `findById` (or equivalent) inside a loop over many ids. Prefer `findAllById`, `findByIdIn`, or a single query, then a map keyed by id.
+
+## Config and properties
+
+- Use `@ConfigurationProperties` with a clear prefix when adding grouped settings; match existing `application` / `application-*.yml` style.
+- Prefer **kebab-case** in externalized property keys; avoid hardcoding magic numbers for thresholds—use configuration.
+
+## API paths
+
+- Use consistent prefixes (e.g. `/api/...`). Prefer **kebab-case** path segments where it matches existing endpoints.
+
+## Related rules
+
+- **java-naming.mdc** — class, variable, API, and property naming.
+- **java-reuse-utils.mdc** — reuse helpers and services before duplicating logic.
+- **java-dtos-and-entities.mdc**, **java-logging.mdc**

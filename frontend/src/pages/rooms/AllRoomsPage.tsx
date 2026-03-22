@@ -6,6 +6,7 @@ import { useProperties } from '@/hooks/useProperties'
 import { fetchRooms, deleteRoom } from '@/api/rooms'
 import { fetchOccupants } from '@/api/occupants'
 import type { Room, RoomStatus } from '@/types/room'
+import { formatMoney, getErrorMessageVi } from '@/utils'
 
 const PAGE_SIZE = 10
 
@@ -42,7 +43,7 @@ export function AllRoomsPage() {
       queryClient.invalidateQueries({ queryKey: ['properties', propertyId, 'rooms'] })
       toast.success('Đã xóa phòng')
     },
-    onError: () => toast.error('Không thể xóa phòng'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể xóa phòng')),
   })
 
   const isLoading = loadingProperties || roomQueries.some((q) => q.isLoading)
@@ -234,7 +235,7 @@ export function AllRoomsPage() {
                   <p className="text-xs text-slate-500 dark:text-slate-400">{r.propertyName}</p>
                   <p className="font-medium text-slate-900 dark:text-white">{r.name}</p>
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    {typeof r.rentPrice === 'number' ? r.rentPrice.toLocaleString() : r.rentPrice} đ/tháng
+                    {formatMoney(r.rentPrice)} đ/tháng
                   </p>
                   <span
                     className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -321,7 +322,7 @@ export function AllRoomsPage() {
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{r.propertyName}</td>
                       <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{r.name}</td>
                       <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">
-                        {typeof r.rentPrice === 'number' ? r.rentPrice.toLocaleString() : r.rentPrice}
+                        {formatMoney(r.rentPrice)}
                       </td>
                       <td className="px-4 py-3">
                         <span

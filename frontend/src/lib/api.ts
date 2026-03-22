@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios'
 
+/** Error JSON body matches backend {@code com.management.dto.response.ErrorResponse} (camelCase). */
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export const api = axios.create({

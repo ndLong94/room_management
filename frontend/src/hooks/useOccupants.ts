@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessageVi } from '@/utils'
 import {
   createOccupant,
   deleteOccupant,
@@ -36,7 +37,7 @@ export function useCreateOccupant(propertyId: number, roomId: number) {
       queryClient.invalidateQueries({ queryKey: occupantsKey(propertyId, roomId) })
       toast.success('Đã thêm người ở')
     },
-    onError: () => toast.error('Không thể thêm người ở'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể thêm người ở')),
   })
 }
 
@@ -49,7 +50,7 @@ export function useUpdateOccupant(propertyId: number, roomId: number) {
       queryClient.invalidateQueries({ queryKey: occupantsKey(propertyId, roomId) })
       toast.success('Đã cập nhật người ở')
     },
-    onError: () => toast.error('Không thể cập nhật người ở'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể cập nhật người ở')),
   })
 }
 
@@ -61,6 +62,6 @@ export function useDeleteOccupant(propertyId: number, roomId: number) {
       queryClient.invalidateQueries({ queryKey: occupantsKey(propertyId, roomId) })
       toast.success('Đã xóa người ở')
     },
-    onError: () => toast.error('Không thể xóa người ở'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể xóa người ở')),
   })
 }

@@ -1,0 +1,53 @@
+---
+description: React + TypeScript + Vite + Tailwind — structure and conventions
+globs: frontend/**/*.tsx, frontend/**/*.ts
+alwaysApply: false
+---
+
+# Frontend (React + TypeScript)
+
+## Tech stack
+
+- **React 18**, **TypeScript**, **Vite**, **Tailwind CSS**, **React Router**, **TanStack Query**, **react-hook-form** + **zod** where forms need validation, **axios** via shared client.
+
+## Directory roles
+
+| Area | Purpose |
+|------|--------|
+| `src/pages/` | Route-level screens (often grouped by feature: `admin/`, `properties/`, `rooms/`, …) |
+| `src/components/` | Reusable UI (e.g. layout, `AdminRoute`) |
+| `src/hooks/` | Data hooks wrapping React Query (`useXxx`) |
+| `src/api/` | API functions calling the backend (thin wrappers around `api`) |
+| `src/lib/` | App-wide clients/utilities (e.g. axios instance) |
+| `src/types/` | Shared TypeScript types and DTO shapes |
+| `src/utils/` | Pure helpers (formatting, errors) |
+| `src/routes/` | Route configuration |
+
+Prefer **feature-aligned** files: keep API calls next to the feature via `api/` + `hooks/`, and types in `types/` when shared.
+
+## API and auth
+
+- Use the shared **`api`** instance from `src/lib/api.ts` (base URL from `VITE_API_URL`, JSON defaults, auth header, 401 handling). Do not create duplicate axios instances for normal CRUD.
+- Align request/response shapes with backend DTOs (camelCase).
+
+## Components
+
+- Prefer **function components** and hooks; use **named exports** consistent with existing files.
+- Keep components presentational where possible; load data in route-level pages or dedicated hooks.
+
+## Styling
+
+- Use **Tailwind** utility classes; follow spacing, typography, and layout patterns already used in nearby pages/components for visual consistency.
+
+## Naming
+
+- Components: `PascalCase.tsx`. Hooks: `useThing.ts`. API modules: lowercase with feature name (`properties.ts`, `auth.ts`).
+- Types: match domain language (`Property`, `Invoice`) and reuse `types/` for cross-screen contracts.
+
+## Lint / quality
+
+- Run **`npm run lint`** in `frontend/` after substantive changes. Fix new issues in touched files.
+
+## Related rules
+
+- **frontend-reuse-utils.mdc** — shared `api`, `utils/`, hooks, and avoiding duplicate HTTP/formatting code.

@@ -37,13 +37,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String username = jwtUtil.validateAndGetUsername(jwt);
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     var userDetails = userDetailsService.loadUserByUsername(username);
-                    var auth = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
-                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    if (!userDetails.isEnabled()) {
+                        log.debug("JWT valid but account not active: {}", username);
+                    } else {
+                        var auth = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
                 }
             }
         } catch (Exception e) {

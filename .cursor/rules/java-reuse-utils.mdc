@@ -1,0 +1,50 @@
+---
+description: Reuse existing helpers and services before adding duplicates
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Reuse and utilities (Java backend)
+
+## Rule: search and reuse first
+
+Before adding **validation**, **formatting**, **date/math helpers**, or **small static utilities**:
+
+1. Search **`com.management`** for an existing method that already does the job.
+2. Prefer extending a **single** shared place (e.g. a small `util` or an existing `*Service`) over scattering the same logic in multiple services.
+
+Duplicate regexes, email checks, or date formatting in several classes will drift and behave inconsistently.
+
+## Existing helpers in this repo
+
+| Area | Where to look |
+|------|----------------|
+| Optional string trim → null | `com.management.util.Text#trimToNull` |
+| JWT / token signing | `com.management.security.JwtUtil` |
+| Cross-cutting HTTP / security | `com.management.security.*`, `com.management.config.*` |
+| Batch infrastructure | `com.management.batch`, `com.management.batch.config` |
+
+Add new **cross-cutting** static helpers in a dedicated type (e.g. `com.management.util.ValidationUtils`) only when multiple call sites need the same behavior—then call that type from services instead of reimplementing.
+
+## Services and repositories
+
+- **Delegate to services** from controllers; do not duplicate business rules in controllers.
+- **N+1:** use bulk repository methods and maps—see **java-spring-backend.mdc**.
+- **Associations:** if an entity is already loaded with `@ManyToOne` / fetch join, use getters instead of fetching the same row again by id.
+
+## Jakarta / Spring / JDK
+
+- Prefer **`Optional`**, **`Stream`**, **`String`**, **`Objects`**, **`java.time`** APIs before adding bespoke helpers.
+- Use **`@Valid`**, Bean Validation (`jakarta.validation`) on DTOs for input rules when the project already uses that pattern.
+
+## When a new util is justified
+
+- The logic is **domain-specific** and should not live in a generic library.
+- No existing method fits, and the behavior will be used from **more than one** package—then add one shared implementation and reuse it.
+
+## Summary
+
+- **JWT / auth crypto** → `JwtUtil` and existing security classes.
+- **Business rules** → appropriate `*Service`, not static helpers in random packages.
+- **Validation/format** → existing DTO annotations + shared util class if introduced once and reused.
+- **Dates/amounts** → align with patterns already used in `domain.entity` and services (`BigDecimal`, `LocalDate`, `Instant`, etc.).

@@ -35,7 +35,7 @@ export function useSetPlatformPrice(userId: number) {
       queryClient.invalidateQueries({ queryKey: ['admin'] })
       toast.success('Đã cập nhật giá')
     },
-    onError: () => toast.error('Không thể cập nhật giá'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể cập nhật giá')),
   })
 }
 
@@ -48,7 +48,7 @@ export function useRecordPlatformPayment(userId: number) {
       queryClient.invalidateQueries({ queryKey: ['admin'] })
       toast.success('Đã ghi nhận thanh toán')
     },
-    onError: () => toast.error('Không thể ghi nhận thanh toán'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể ghi nhận thanh toán')),
   })
 }
 
@@ -75,7 +75,7 @@ export function useApproveUser() {
       queryClient.invalidateQueries({ queryKey: ['admin'] })
       toast.success('Đã duyệt user')
     },
-    onError: () => toast.error('Không thể duyệt'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể duyệt')),
   })
 }
 
@@ -88,6 +88,6 @@ export function useSetUserStatus() {
       queryClient.invalidateQueries({ queryKey: ['admin'] })
       toast.success('Đã cập nhật trạng thái')
     },
-    onError: () => toast.error('Không thể cập nhật'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể cập nhật')),
   })
 }

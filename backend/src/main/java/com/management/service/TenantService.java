@@ -2,6 +2,7 @@ package com.management.service;
 
 import com.management.domain.entity.Tenant;
 import com.management.dto.request.CreateTenantRequest;
+import com.management.util.Text;
 import com.management.dto.request.UpdateTenantRequest;
 import com.management.dto.response.TenantResponse;
 import com.management.exception.TenantNotFoundException;
@@ -37,30 +38,30 @@ public class TenantService {
     }
 
     @Transactional
-    public TenantResponse create(CreateTenantRequest request) {
+    public TenantResponse create(CreateTenantRequest createTenantRequest) {
         long userId = currentUserId();
         Tenant tenant = Tenant.builder()
                 .ownerUserId(userId)
-                .fullName(request.getFullName().trim())
-                .phone(trimOrNull(request.getPhone()))
-                .idNumber(trimOrNull(request.getIdNumber()))
-                .idType(trimOrNull(request.getIdType()))
-                .address(trimOrNull(request.getAddress()))
+                .fullName(createTenantRequest.getFullName().trim())
+                .phone(Text.trimToNull(createTenantRequest.getPhone()))
+                .idNumber(Text.trimToNull(createTenantRequest.getIdNumber()))
+                .idType(Text.trimToNull(createTenantRequest.getIdType()))
+                .address(Text.trimToNull(createTenantRequest.getAddress()))
                 .build();
         tenant = tenantRepository.save(tenant);
         return toResponse(tenant);
     }
 
     @Transactional
-    public TenantResponse update(Long id, UpdateTenantRequest request) {
+    public TenantResponse update(Long id, UpdateTenantRequest updateTenantRequest) {
         long userId = currentUserId();
         Tenant tenant = tenantRepository.findByIdAndOwnerUserId(id, userId)
                 .orElseThrow(() -> new TenantNotFoundException("Không tìm thấy người thuê: " + id));
-        tenant.setFullName(request.getFullName().trim());
-        tenant.setPhone(trimOrNull(request.getPhone()));
-        tenant.setIdNumber(trimOrNull(request.getIdNumber()));
-        tenant.setIdType(trimOrNull(request.getIdType()));
-        tenant.setAddress(trimOrNull(request.getAddress()));
+        tenant.setFullName(updateTenantRequest.getFullName().trim());
+        tenant.setPhone(Text.trimToNull(updateTenantRequest.getPhone()));
+        tenant.setIdNumber(Text.trimToNull(updateTenantRequest.getIdNumber()));
+        tenant.setIdType(Text.trimToNull(updateTenantRequest.getIdType()));
+        tenant.setAddress(Text.trimToNull(updateTenantRequest.getAddress()));
         tenant = tenantRepository.save(tenant);
         return toResponse(tenant);
     }
@@ -90,10 +91,6 @@ public class TenantService {
                 .address(t.getAddress())
                 .createdAt(t.getCreatedAt())
                 .build();
-    }
-
-    private static String trimOrNull(String s) {
-        return s != null && !s.trim().isEmpty() ? s.trim() : null;
     }
 
     private long currentUserId() {

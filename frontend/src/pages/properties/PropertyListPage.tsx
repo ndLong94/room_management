@@ -31,12 +31,12 @@ export function PropertyListPage() {
         toast.error('Không thể xóa bất động sản khi có phòng đang cho thuê. Vui lòng chuyển trạng thái các phòng sang "Còn trống" trước khi xóa.')
         return
       }
-    } catch (err) {
+    } catch {
       // If error fetching rooms, still try to delete (backend will validate)
     }
-    
+
     deleteProperty.mutate(id, {
-      onError: (err: any) => {
+      onError: (err: unknown) => {
         toast.error(getErrorMessageVi(err, 'Không thể xóa bất động sản này.'))
       },
     })

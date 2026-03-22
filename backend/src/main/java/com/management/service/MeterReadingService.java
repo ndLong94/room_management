@@ -35,15 +35,15 @@ public class MeterReadingService {
     }
 
     @Transactional
-    public MeterReading create(Long propertyId, Long roomId, MeterReadingRequest request) {
+    public MeterReading create(Long propertyId, Long roomId, MeterReadingRequest meterReadingRequest) {
         ensurePropertyOwnedByCurrentUser(propertyId);
         Room room = roomRepository.findByIdAndPropertyId(roomId, propertyId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found: " + roomId));
         if (room.getStatus() != RoomStatus.OCCUPIED) {
             throw new IllegalStateException("Chỉ được cập nhật chỉ số điện nước khi phòng đang cho thuê.");
         }
-        int prevMonth = request.getMonth() == 1 ? 12 : request.getMonth() - 1;
-        int prevYear = request.getMonth() == 1 ? request.getYear() - 1 : request.getYear();
+        int prevMonth = meterReadingRequest.getMonth() == 1 ? 12 : meterReadingRequest.getMonth() - 1;
+        int prevYear = meterReadingRequest.getMonth() == 1 ? meterReadingRequest.getYear() - 1 : meterReadingRequest.getYear();
         BigDecimal prevElec = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, prevMonth, prevYear)
                 .map(MeterReading::getElecReading)
                 .orElse(BigDecimal.ZERO);
@@ -54,19 +54,19 @@ public class MeterReadingService {
         BigDecimal initialWater = room.getInitialWaterReading() != null ? room.getInitialWaterReading() : BigDecimal.ZERO;
         BigDecimal minElec = prevElec.max(initialElec);
         BigDecimal minWater = prevWater.max(initialWater);
-        if (request.getElecReading().compareTo(minElec) < 0 || request.getWaterReading().compareTo(minWater) < 0) {
+        if (meterReadingRequest.getElecReading().compareTo(minElec) < 0 || meterReadingRequest.getWaterReading().compareTo(minWater) < 0) {
             throw new IllegalArgumentException("Chỉ số điện nước không được nhỏ hơn chỉ số lúc chuyển trạng thái hoặc chỉ số tháng trước.");
         }
-        MeterReading reading = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, request.getMonth(), request.getYear())
+        MeterReading reading = meterReadingRepository.findByRoomIdAndMonthAndYear(roomId, meterReadingRequest.getMonth(), meterReadingRequest.getYear())
                 .orElse(MeterReading.builder()
                         .roomId(roomId)
-                        .month(request.getMonth())
-                        .year(request.getYear())
-                        .elecReading(request.getElecReading())
-                        .waterReading(request.getWaterReading())
+                        .month(meterReadingRequest.getMonth())
+                        .year(meterReadingRequest.getYear())
+                        .elecReading(meterReadingRequest.getElecReading())
+                        .waterReading(meterReadingRequest.getWaterReading())
                         .build());
-        reading.setElecReading(request.getElecReading());
-        reading.setWaterReading(request.getWaterReading());
+        reading.setElecReading(meterReadingRequest.getElecReading());
+        reading.setWaterReading(meterReadingRequest.getWaterReading());
         return meterReadingRepository.save(reading);
     }
 

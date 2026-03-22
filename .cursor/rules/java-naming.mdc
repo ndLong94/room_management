@@ -1,0 +1,71 @@
+---
+description: Class, variable, API, and property naming — Java backend
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Naming (Java backend)
+
+## Class name suffixes
+
+| Kind | Pattern | Example |
+|------|--------|---------|
+| Controller | `*Controller` | `AuthController` |
+| Service | `*Service` | `InvoiceService`, `AuthService` |
+| Config | `*Configuration` or `*Config` | `CorsConfig`, `InvoiceJobConfig` |
+| Properties | `*Properties` | (if you add `@ConfigurationProperties`) |
+| Request DTO | `*Request` | `LoginRequest`, `CreateTenantRequest` |
+| Response DTO | `*Response` | `InvoiceResponse`, `AuthResponse` |
+| Internal / composite DTO | `*Model` | only if the codebase already uses this pattern |
+| JPA entity | domain noun (no `*Dto`) | `User`, `Room`, `Invoice` |
+| Repository | `*Repository` | `InvoiceRepository` |
+| Exception | `*Exception` | `InvoiceNotFoundException` |
+| Batch writer / reader | `*Writer`, `*Reader` | `InvoiceGenerateItemWriter` |
+| Security helper | `*Util` | `JwtUtil` |
+
+Do not use `*Dto` for request/response types; use `*Request` and `*Response`.
+
+## Scheduled batch jobs
+
+- Prefer **Spring Batch** (Job → Step → `ItemReader` / `ItemProcessor` / `ItemWriter`) for work that processes many rows, consistent with `com.management.batch`.
+- Keep domain logic in **services**; writers/readers delegate.
+- Name batch classes `*Reader`, `*Writer`, `*JobConfig` to match existing batch code.
+- Avoid magic day/count thresholds in code—use **`@ConfigurationProperties` or `application*.yml`** with kebab-case keys.
+
+## Variables
+
+- Use **camelCase** everywhere.
+- Prefer **meaningful names** over `data`, `item`, `temp`, `ret`, single-letter names in non-trivial lambdas.
+- For **Request/Response DTO** locals, prefer the type in camelCase when it avoids ambiguity: e.g. `CreateTenantRequest createTenantRequest` instead of a bare `request` in large methods.
+- For **JPA entities**, use the entity type in camelCase when multiple entities appear in the same block: e.g. `Invoice invoice`, `Room room`. Avoid a bare `entity` when a specific type is clearer.
+- **ID variables:** name after what the id refers to: `roomId`, `invoiceId`, `ownerUserId`—not generic `id` when several ids are in scope.
+- **Collections:** plural, content-specific: `invoices`, `roomIds`, not `list` or `data`.
+- **Lambdas:** prefer **method references** when they read clearly (`.map(Invoice::getId)`). For multi-line or non-trivial predicates, a named parameter is fine.
+
+## Null checks and streams
+
+- Prefer `.filter(Objects::nonNull)` over explicit null lambdas when filtering nulls.
+- Prefer **method references** for single-method lambdas: `.map(Room::getName)` over `r -> r.getName()` when clear.
+
+## Dates and enums
+
+- Align new entities with **existing** types in the same area (`Instant`, `LocalDate`, etc.)—do not mix epoch `Long` and `Instant` without a strong reason.
+- Prefer **enums** for fixed status/type columns (`InvoiceStatus`, `RoomStatus`) instead of unconstrained strings.
+
+## Configurable thresholds
+
+- No unexplained numeric literals for business rules (grace days, limits, batch sizes). Put them in configuration with descriptive kebab-case keys.
+
+## Reuse (naming-related)
+
+- **Prefer existing methods** over copy-paste (e.g. a shared resolver for ids → display strings). See **java-reuse-utils.mdc**.
+- **Use loaded associations** when the entity graph already provides them; avoid redundant `findById` when the row is already fetched with the needed relation.
+
+## API paths
+
+- Prefer **kebab-case** segments where it matches existing APIs: `/api/...`, e.g. resource-oriented paths consistent with current controllers.
+
+## Application YAML / properties
+
+- **Keys:** **kebab-case** (e.g. `app.batch.invoice-cron`, not camelCase in file keys).
+- **Prefixes:** group by domain (`spring.*`, `app.*`, JWT secrets, etc.) like existing `application.yml`.

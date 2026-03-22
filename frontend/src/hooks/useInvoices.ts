@@ -61,7 +61,6 @@ export function useGenerateInvoice() {
       toast.success('Đã tạo hóa đơn')
     },
     onError: (err: unknown) => {
-      if ((err as { response?: { status?: number } })?.response?.status === 409) return
       toast.error(getErrorMessageVi(err, 'Không thể tạo hóa đơn'))
     },
   })
@@ -76,7 +75,7 @@ export function useMarkInvoicePaid() {
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'summary'] })
       toast.success('Đã đánh dấu đã thanh toán')
     },
-    onError: () => toast.error('Không thể cập nhật hóa đơn'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể cập nhật hóa đơn')),
   })
 }
 
@@ -89,7 +88,7 @@ export function useMarkInvoiceUnpaid() {
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'summary'] })
       toast.success('Đã đánh dấu chưa thanh toán')
     },
-    onError: () => toast.error('Không thể cập nhật hóa đơn'),
+    onError: (err: unknown) => toast.error(getErrorMessageVi(err, 'Không thể cập nhật hóa đơn')),
   })
 }
 
