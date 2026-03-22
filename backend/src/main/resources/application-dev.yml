@@ -1,3 +1,8 @@
+app:
+  jwt:
+    # Local dev only — override with JWT_SECRET in .env for consistency with prod.
+    secret: ${JWT_SECRET:dev-local-only-not-for-production-min-32-chars}
+
 spring:
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/room_management

@@ -44,7 +44,7 @@ CREATE DATABASE room_management;
 | `JWT_SECRET`       | (see below)    | HMAC key (min 32 chars)|
 | `JWT_EXPIRATION_MS`| `86400000` (24h)| Token validity in ms  |
 
-Default dev secret in `application.yml` is a placeholder; set `JWT_SECRET` in production.
+Dev profile uses a local default in `application-dev.yml` (override with `JWT_SECRET`). Production must set `JWT_SECRET` (no default in repo).
 
 **Auth endpoints:** `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` (Bearer token).  
 **Swagger:** http://localhost:8080/swagger-ui.html — use **Authorize** and enter the token from login (no "Bearer " prefix in the box).

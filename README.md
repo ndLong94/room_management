@@ -1,24 +1,40 @@
 # Management
 
-Full-stack app: Spring Boot 3.x backend (Java 17) + React (Vite + TypeScript) frontend.
+Full-stack **room / property management** app: landlords manage properties, rooms, leases, meter-based invoicing, and optional Zalo invoice notifications.
 
-## Quick start
+## Tech stack
 
-- **Backend:** See [backend/README.md](backend/README.md) — Java 17, Maven, PostgreSQL database **`room_management`**.
-- **Frontend:** See [frontend/README.md](frontend/README.md) — Node 18+, npm, `VITE_API_URL` config.
+| Layer | Stack |
+|--------|--------|
+| **Backend** | Java 17, Spring Boot 3.x, Spring Security (JWT), Spring Data JPA, Flyway, PostgreSQL, Spring Batch |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, TanStack Query, React Router, axios |
+| **Ops** | Docker Compose (Postgres + API + static frontend), GitHub Actions CI |
+
+## How to run (local)
+
+1. **Database:** PostgreSQL with database `room_management` (see [backend/README.md](backend/README.md)). Or start Postgres via [docker-compose.yml](docker-compose.yml).
+2. **Backend:** From `backend/`, configure `application-dev` (defaults in repo) or env vars, then `mvn spring-boot:run`.
+3. **Frontend:** From `frontend/`, copy `.env.example` to `.env`, set `VITE_API_URL`, then `npm install` and `npm run dev`.
+
+Details, env tables, and Swagger URL: [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md).
+
+## CI
+
+Push and pull requests to `main` / `master` run **Maven verify** (backend tests, including Testcontainers) and **npm lint + build** (frontend).
 
 ## Project layout
 
 | Path | Description |
 |------|-------------|
-| `backend/` | Spring Boot API (config, global error handler, request-id logging). See **backend/README.md** for how to start and config. |
-| `frontend/` | React app (navbar, sidebar, toasts, axios + auth). See **frontend/README.md** for how to start and config. |
-| `docker-compose.yml` | Optional PostgreSQL for local dev (you can use your existing Postgres and database `room_management` instead). |
+| `backend/` | REST API, Flyway migrations, batch jobs. See **backend/README.md**. |
+| `frontend/` | SPA (auth, admin, properties, rooms, invoices). See **frontend/README.md**. |
+| `docker-compose.yml` | Optional PostgreSQL + backend + frontend images for local or demo deploy. |
 
-## Summary
+## Quick reference
 
-- **Backend:** Java 17, Maven 3.9+. Uses PostgreSQL; database name **`room_management`**. Dev user: `admin` / `admin`.
-- **Frontend:** React 18, Vite, TypeScript, latest stable npm deps. Set `VITE_API_URL` (e.g. `http://localhost:8080`).
+- **Backend:** Java 17, Maven 3.9+. Database name **`room_management`**.
+- **Frontend:** Node 18+, `VITE_API_URL` (e.g. `http://localhost:8080`).
+- **Secrets:** Set **`JWT_SECRET`** (≥32 characters) in production; do not rely on dev-only defaults outside local development.
 
 ## Tích hợp Zalo (gửi tin nhắn hóa đơn)
 
